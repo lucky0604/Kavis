@@ -1,0 +1,83 @@
+.composer {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background: var(--color-bg-scene);
+}
+
+.composerInner {
+  max-width: var(--chat-column-width);
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
+  transition: border-color var(--duration-fast);
+}
+
+.composerInner:focus-within {
+  border-color: var(--color-input-focus-ring);
+}
+
+.textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  resize: none;
+  min-height: 24px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--space-1) 0;
+}
+
+.textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.sendButton,
+.stopButton {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.sendButton {
+  background: var(--color-accent-500);
+  color: #fff;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: var(--color-accent-400);
+}
+
+.sendButtonDisabled {
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.stopButton {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  font-size: 12px;
+}
+
+.stopButton:hover {
+  background: var(--color-error);
+  color: #fff;
+}

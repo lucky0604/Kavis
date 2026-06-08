@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+
+# Tools / Agents
+.claude/
+.codex/
+.codegraph/
+.omo/
+
+# Logs
+logs
+*.log
+
+# Releases
+release/
+
+# Janus runtime
+~/.janus/
+
+# Reference (external projects, not part of this repo)
+bitfun/
+
+# Agent-generated design docs (not source code)
+agent_flow/
+ralph/
+tasks/
