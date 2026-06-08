@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
 import type { Message } from '@shared/types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import styles from './MessageList.module.css';
 
 interface MessageListProps {
@@ -28,14 +31,24 @@ function MessageBubble({ message, isLast }: { message: Message; isLast: boolean 
     }
   };
 
-  // Plain text rendering for now; Markdown rendering added via react-markdown later
-  const content = message.content;
+  const isAssistant = message.role === 'assistant';
 
   return (
     <div className={`${styles.message} ${cls()}`}>
       {label() && <div className={styles.label}>{label()}</div>}
       <div className={styles.content}>
-        {content || (isLast && message.role === 'assistant' ? (
+        {message.content ? (
+          isAssistant ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+            >
+              {message.content}
+            </ReactMarkdown>
+          ) : (
+            message.content
+          )
+        ) : (isLast && message.role === 'assistant' ? (
           <span className={styles.thinking}>Thinking...</span>
         ) : null)}
       </div>

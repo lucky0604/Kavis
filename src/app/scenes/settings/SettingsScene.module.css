@@ -16,8 +16,36 @@
   margin-bottom: var(--space-8);
 }
 
-.section {
-  margin-bottom: var(--space-6);
+/* ---- Section Group ---- */
+.sectionGroup {
+  margin-bottom: var(--space-8);
+  padding: var(--space-5);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+}
+
+.sectionTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.sectionDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-5);
+  line-height: 1.5;
+}
+
+/* ---- Field ---- */
+.field {
+  margin-bottom: var(--space-5);
+}
+
+.field:last-child {
+  margin-bottom: 0;
 }
 
 .label {
@@ -28,8 +56,15 @@
   margin-bottom: var(--space-2);
 }
 
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: var(--space-2) var(--space-3);
   background: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
@@ -44,31 +79,86 @@
   outline: none;
 }
 
-.actions {
-  margin-top: var(--space-2);
-}
-
 .hint {
   display: block;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-top: var(--space-1);
+  line-height: 1.4;
 }
 
-.btn {
-  padding: var(--space-2) var(--space-4);
+/* ---- Status Badge ---- */
+.statusBadge {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  min-width: 56px;
+  text-align: right;
+  transition: opacity 0.2s;
+}
+
+.statusBadge.idle {
+  opacity: 0;
+}
+
+.statusBadge.unsaved {
+  color: var(--color-warning);
+  opacity: 1;
+}
+
+.statusBadge.saving {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.statusBadge.saved {
+  color: var(--color-accent-500);
+  opacity: 1;
+}
+
+/* ---- Save Bar ---- */
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-4);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-accent-500);
+  border-radius: var(--radius-md);
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.unsavedHint {
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+}
+
+.btnSave {
+  padding: var(--space-2) var(--space-5);
   background: var(--color-accent-500);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
-.btn:hover {
+.btnSave:hover {
   background: var(--color-accent-400);
-}
-
-select.input {
-  font-family: var(--font-sans);
 }

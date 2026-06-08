@@ -27,7 +27,11 @@ export class OpenAIAdapter implements AIAdapter {
   private client: OpenAI;
 
   constructor(apiKey: string, baseUrl?: string) {
-    this.client = new OpenAI({ apiKey, baseURL: baseUrl || process.env.OPENAI_BASE_URL });
+    const trimmedBase = baseUrl?.trim() || undefined;
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: trimmedBase || process.env.OPENAI_BASE_URL,
+    });
   }
 
   async *streamChat(
@@ -133,7 +137,7 @@ export class OpenAIAdapter implements AIAdapter {
         }
       }
       if (err instanceof DOMException && err.name === 'AbortError') {
-        return;
+        throw err;
       }
       throw err;
     }

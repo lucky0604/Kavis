@@ -3,3 +3,10 @@
   height: 100vh;
   background: var(--color-bg-primary);
 }
+
+.sceneContainer {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}

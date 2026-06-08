@@ -6,16 +6,18 @@ import { SceneArea } from './SceneArea';
 export function AppLayout() {
   const { currentScene } = useSceneStore();
 
-  // Phase 1: Chat-only layout (no NavBar)
-  if (currentScene === 'chat') {
+  // Welcome scene is fullscreen onboarding — no NavBar
+  if (currentScene === 'welcome') {
     return <SceneArea />;
   }
 
-  // Phase 3+: Full layout with NavBar
+  // All other scenes (chat, agents, settings) show NavBar
   return (
     <div className={styles.layout}>
       <NavBar />
-      <SceneArea />
+      <div className={styles.sceneContainer}>
+        <SceneArea />
+      </div>
     </div>
   );
 }

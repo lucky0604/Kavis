@@ -65,8 +65,8 @@ async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
 
   const workspacePath = (body.workspacePath as string) || '';
   const sessionId = (body.sessionId as string) || crypto.randomUUID();
-  const baseUrl = (body.baseUrl as string) || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-  const modelName = (body.modelName as string) || process.env.OPENAI_MODEL || 'gpt-4o';
+  const baseUrl = (typeof body.baseUrl === 'string' && body.baseUrl.trim()) || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+  const modelName = (typeof body.modelName === 'string' && body.modelName.trim()) || process.env.OPENAI_MODEL || 'gpt-4o';
 
   // Set up AbortController linked to client disconnect
   const abortController = new AbortController();
@@ -82,7 +82,7 @@ async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
 
   try {
     const stream = await handleChatStream(
-      { messages: messages as Message[], workspacePath, sessionId, baseUrl, modelName },
+      { messages: messages as Message[], workspacePath, sessionId, apiKey, baseUrl, modelName },
       abortController.signal
     );
 

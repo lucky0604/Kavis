@@ -5,7 +5,7 @@ import { ChatInput } from './ChatInput';
 import styles from './ChatPane.module.css';
 
 export function ChatPane() {
-  const { messages, isStreaming, isConnecting, connectionError, sendMessage, stopGeneration } =
+  const { messages, isStreaming, isConnecting, connectionError, errorMessage, sendMessage, stopGeneration, clearError } =
     useChatStore();
   const listRef = useRef<HTMLDivElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
@@ -25,6 +25,14 @@ export function ChatPane() {
 
   return (
     <div className={styles.chatPane}>
+      {/* Error banner */}
+      {errorMessage && (
+        <div className={styles.errorBanner}>
+          <span>{errorMessage}</span>
+          <button className={styles.errorDismiss} onClick={clearError} title="Dismiss">×</button>
+        </div>
+      )}
+
       {/* Connection error banner (SSE disconnect) */}
       {connectionError && (
         <div className={styles.reconnectBanner}>

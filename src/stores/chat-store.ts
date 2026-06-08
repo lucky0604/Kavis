@@ -68,6 +68,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       errorMessage: null,
     });
 
+    // Build the messages array that includes the user's current input
+    const requestMessages = [...messages, userMsg];
+
     abortController = new AbortController();
 
     try {
@@ -78,11 +81,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
           'X-API-Key': apiKey,
         },
         body: JSON.stringify({
-          messages: messages,
+          messages: requestMessages,
           workspacePath: '',
           sessionId,
-          baseUrl,
-          modelName,
+          baseUrl: baseUrl.trim(),
+          modelName: modelName.trim(),
         }),
         signal: abortController.signal,
       });
@@ -113,12 +116,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const json = line.slice(6);
+        // SSE: events are separated by blank lines (\n\n)
+        // Split on double-newline to get complete event blocks
+        const eventBlocks = buffer.split(/\n\n/);
+        // Last block may be incomplete — keep in buffer
+        buffer = eventBlocks.pop() || '';
+
+        for (const block of eventBlocks) {
+          // A block may have multiple data: lines (SSE multi-line data)
+          // Collect all data: lines within this block
+          const dataLines: string[] = [];
+          for (const line of block.split(/\r?\n/)) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data:')) {
+              dataLines.push(trimmed.slice(5).trimStart());
+            }
+          }
+
+          if (dataLines.length === 0) continue;
+
+          // Join multi-line SSE data
+          const json = dataLines.join('');
           if (json === '[DONE]') continue;
 
           try {
@@ -136,6 +155,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }
                 break;
               }
+              case 'tool_call':
+                // Tool calls are informational during streaming
+                break;
+              case 'tool_result':
+                // Tool results are informational during streaming
+                break;
               case 'done':
                 set({ isStreaming: false });
                 return;
@@ -148,7 +173,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               }
             }
           } catch {
-            // Skip malformed events
+            // Skip malformed events — don't crash the stream
           }
         }
       }

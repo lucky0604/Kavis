@@ -1,4 +1,4 @@
-import type { Message, ToolCall } from '../../shared/types';
+import type { Message, ToolCall, ToolDefinition } from '../../shared/types';
 import { OpenAIAdapter } from '../ai/openai-adapter';
 import type { StreamEvent } from '../ai/adapter';
 import { toolRegistry } from '../tools/registry';
@@ -30,6 +30,7 @@ export interface ExecutionConfig {
   maxRounds: number;
   workspacePath: string;
   sessionId: string;
+  apiKey: string;
   modelMaxTokens?: number;
   baseUrl?: string;
   modelName?: string;
@@ -37,17 +38,18 @@ export interface ExecutionConfig {
 
 export async function* executeDialogTurn(
   messages: Message[],
-  toolDefs: { name: string; description: string; parameters: Record<string, unknown> }[],
+  toolDefs: { name: string; description: string; parameters: ToolDefinition['parameters'] }[],
   config: ExecutionConfig,
   signal?: AbortSignal
 ): AsyncGenerator<StreamEvent> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = config.apiKey || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     yield { type: 'error', data: { message: 'OpenAI API key not configured' } };
     return;
   }
 
   const adapter = new OpenAIAdapter(apiKey, config.baseUrl);
+  const effectiveModel = config.modelName?.trim() || process.env.OPENAI_MODEL || 'gpt-4o';
   const detector = new LoopDetector();
   const compressor = new ContextCompressor({ modelMaxTokens: config.modelMaxTokens });
   const canceller = new CancellationToken();
@@ -80,13 +82,14 @@ export async function* executeDialogTurn(
     const toolCalls: ToolCall[] = [];
 
     try {
+      // toolDefs.parameters is already a valid JSON Schema object — pass through directly
       const adaptedTools = toolDefs.map((t) => ({
         name: t.name,
         description: t.description,
-        parameters: { type: 'object' as const, properties: t.parameters, required: Object.keys(t.parameters) },
+        parameters: t.parameters,
       }));
 
-      for await (const event of adapter.streamChat(messagesArr, adaptedTools, config.modelName, canceller.signal)) {
+      for await (const event of adapter.streamChat(messagesArr, adaptedTools, effectiveModel, canceller.signal)) {
         canceller.throwIfCancelled();
         if (event.type === 'text_delta') {
           textContent += (event.data as { text: string }).text;

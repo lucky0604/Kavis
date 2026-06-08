@@ -12,6 +12,7 @@ export interface ChatStreamRequest {
   messages: Message[];
   workspacePath: string;
   sessionId: string;
+  apiKey: string;
   baseUrl?: string;
   modelName?: string;
 }
@@ -20,7 +21,7 @@ export async function handleChatStream(
   req: ChatStreamRequest,
   signal: AbortSignal
 ): Promise<ReadableStream> {
-  const { messages, sessionId, workspacePath, baseUrl, modelName } = req;
+  const { messages, sessionId, workspacePath, apiKey, baseUrl, modelName } = req;
   const resolvedPath =
     workspacePath || process.env.JANUS_WORKSPACE || process.cwd();
 
@@ -36,26 +37,36 @@ export async function handleChatStream(
       };
 
       try {
+        // t.parameters is already a complete JSON Schema — pass as-is
         const tools = toolRegistry.getAll().map((t) => ({
           name: t.name,
           description: t.description,
-          parameters: t.parameters as Record<string, unknown>,
+          parameters: t.parameters,
         }));
 
         const config = {
           maxRounds: 10,
           workspacePath: resolvedPath,
           sessionId,
+          apiKey,
           baseUrl,
           modelName,
         };
 
+        let doneEmitted = false;
+
         for await (const event of executeDialogTurn(messages, tools, config, signal)) {
-          // Check cancelled
           if (signal.aborted) {
             push({ type: 'done', data: { reason: 'cancelled' } });
+            doneEmitted = true;
             controller.close();
             return;
+          }
+
+          if (event.type === 'done') {
+            push(event);
+            doneEmitted = true;
+            break;
           }
 
           push(event);
@@ -75,7 +86,9 @@ export async function handleChatStream(
           }
         }
 
-        push({ type: 'done', data: { reason: 'complete' } });
+        if (!doneEmitted) {
+          push({ type: 'done', data: { reason: 'complete' } });
+        }
       } catch (err) {
         push({
           type: 'error',
