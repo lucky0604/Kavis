@@ -33,6 +33,9 @@ function isPrivateIP(ip: string): boolean {
   return PRIVATE_IP_RANGES.some((range) => num >= range.min && num <= range.max);
 }
 
+// Exported for SSRF protection in HTTP lookup callbacks (web-fetch.ts)
+export { isPrivateIP };
+
 export interface UrlValidationResult {
   allowed: boolean;
   reason?: string;

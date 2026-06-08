@@ -3,7 +3,7 @@ import https from 'https';
 import dns from 'dns';
 import { URL } from 'url';
 import { toolRegistry } from './registry';
-import { validateUrlForFetch, validateRedirectChain } from './web/url-validator';
+import { validateUrlForFetch, validateRedirectChain, isPrivateIP } from './web/url-validator';
 import { extractContent } from './web/content-extractor';
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -85,6 +85,16 @@ function singleFetch(url: string, timeout: number, externalSignal?: AbortSignal)
       signal: controller.signal,
       lookup: (hostname, opts, callback) => {
         dnsLookup(hostname, opts, (err, address, family) => {
+          if (err) {
+            callback(err, address, family);
+            return;
+          }
+          // SSRF protection: re-check the resolved IP at request time
+          // to prevent DNS rebinding / TOCTOU attacks
+          if (typeof address === 'string' && isPrivateIP(address)) {
+            callback(new Error(`SSRF blocked: ${hostname} resolved to private IP ${address}`), address, family);
+            return;
+          }
           callback(err, address, family);
         });
       },

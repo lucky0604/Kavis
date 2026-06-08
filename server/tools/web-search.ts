@@ -1,4 +1,5 @@
 import { toolRegistry } from './registry';
+import { parseHTML } from 'linkedom';
 
 const TAVILY_API_URL = 'https://api.tavily.com/search';
 const DEFAULT_MAX_RESULTS = 10;
@@ -31,7 +32,8 @@ async function tavilySearch(query: string, maxResults: number): Promise<{ result
   });
 
   if (!res.ok) {
-    throw new Error(`Tavily HTTP ${res.status}`);
+    // Sanitize error — don't expose response body which may contain API details
+    throw new Error(`Tavily API error (HTTP ${res.status})`);
   }
 
   const data = await res.json() as {
@@ -65,36 +67,37 @@ async function duckduckgoSearch(query: string, maxResults: number): Promise<{ re
 
   const html = await res.text();
 
-  // Parse the minimal HTML structure DuckDuckGo returns
+  // Parse DuckDuckGo HTML using DOM parser (linkedom) — robust against HTML variations
+  const { document } = parseHTML(html);
   const results: SearchResult[] = [];
-  const resultRegex = /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  const snippetRegex = /<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
 
-  const titles: Array<{ url: string; title: string }> = [];
-  let match: RegExpExecArray | null;
+  const resultElements = document.querySelectorAll('a.result__a');
+  const snippetElements = document.querySelectorAll('a.result__snippet');
 
-  while ((match = resultRegex.exec(html)) !== null && titles.length < maxResults) {
-    let href = match[1];
-    // DuckDuckGo wraps URLs through a redirect — extract the real URL
-    const uddg = href.match(/uddg=([^&]+)/);
-    if (uddg) {
-      try { href = decodeURIComponent(uddg[1]); } catch { /* keep original */ }
+  const count = Math.min(resultElements.length, maxResults);
+  for (let i = 0; i < count; i++) {
+    const anchor = resultElements[i] as HTMLAnchorElement;
+    // Get raw href attribute (not the resolved .href property, which may differ across DOM implementations)
+    const rawHref = anchor.getAttribute('href') || '';
+    let href = rawHref;
+
+    // DuckDuckGo wraps URLs through a redirect — extract the real URL from uddg param
+    const uddgMatch = rawHref.match(/uddg=([^&]+)/);
+    if (uddgMatch) {
+      try {
+        href = decodeURIComponent(uddgMatch[1]);
+      } catch { /* keep original */ }
+    } else if (rawHref.startsWith('//') || rawHref.startsWith('/')) {
+      // Protocol-relative or path-relative URL — not a real result link
+      href = '';
     }
-    const title = match[2].replace(/<[^>]+>/g, '').trim();
-    titles.push({ url: href, title });
-  }
 
-  const snippets: string[] = [];
-  while ((match = snippetRegex.exec(html)) !== null && snippets.length < maxResults) {
-    snippets.push(match[1].replace(/<[^>]+>/g, '').trim());
-  }
+    const title = (anchor.textContent || '').trim();
+    const snippet = (snippetElements[i]?.textContent || '').trim().slice(0, 500);
 
-  for (let i = 0; i < titles.length; i++) {
-    results.push({
-      title: titles[i].title,
-      url: titles[i].url,
-      snippet: (snippets[i] || '').slice(0, 500),
-    });
+    if (href && title) {
+      results.push({ title, url: href, snippet });
+    }
   }
 
   return { results, engine: 'duckduckgo' };

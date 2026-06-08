@@ -293,7 +293,7 @@
 }
 
 .toolStatusOk {
-  color: #22c55e;
+  color: var(--color-success, #22c55e);
   font-size: 13px;
   margin-left: auto;
   flex-shrink: 0;

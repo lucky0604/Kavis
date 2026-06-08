@@ -166,7 +166,7 @@ function MessageBubble({ message, isStreaming: isStreamingProp, i: msgIndex, mes
   // empty AND streaming is active. This handles the initial "waiting for
   // first token" state as well as new rounds that haven't produced text yet.
   const showThinking = isStreamingProp &&
-    message.role === 'assistant' &&
+    isAssistant &&
     !message.content &&
     msgIndex === messagesCount - 1;
 

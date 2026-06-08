@@ -1,19 +1,5 @@
 import { create } from 'zustand';
-import type { Message, StreamEvent, SSEToolCall, SSEToolResult } from '../../shared/types';
-
-/** Metadata attached to tool-role messages for rich rendering */
-export interface ToolMeta {
-  name: string;
-  status: 'running' | 'done' | 'error';
-  /** Short argument summary (e.g. search query, URL) */
-  argSummary: string;
-  /** Result summary (e.g. result count, source titles) */
-  resultSummary?: string;
-  /** Source URLs for citation display */
-  sources?: Array<{ title: string; url: string }>;
-  /** Raw result output for expand/collapse */
-  rawOutput?: string;
-}
+import type { Message, ToolMeta, StreamEvent, SSEToolCall, SSEToolResult } from '../../shared/types';
 
 interface ChatState {
   messages: Message[];
@@ -202,7 +188,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const decoder = new TextDecoder();
       let buffer = '';
-      let accumulatedContent = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -235,16 +220,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
             switch (event.type) {
               case 'text_delta': {
                 const delta = (event.data as { text: string }).text;
-                accumulatedContent += delta;
                 const msgs = [...get().messages];
                 const last = msgs[msgs.length - 1];
                 if (last && last.role === 'assistant') {
-                  // Update existing assistant message
-                  last.content = accumulatedContent;
+                  // Append to existing assistant message (same round)
+                  last.content += delta;
                   set({ messages: [...msgs] });
                 } else {
-                  // New round after tool calls: create a fresh assistant message
-                  accumulatedContent = delta;
+                  // New round after tool calls: create a fresh assistant message.
+                  // The previous round's accumulated content belongs to that round's message.
                   const newAssistant: Message = {
                     id: generateId(),
                     role: 'assistant',
