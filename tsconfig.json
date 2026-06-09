@@ -22,6 +22,6 @@
       "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["src", "server", "shared", "vite.config.ts"],
+  "include": ["src", "server", "shared", "electron", "vite.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
