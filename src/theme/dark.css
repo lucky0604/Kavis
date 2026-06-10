@@ -2,38 +2,51 @@
 /* Premium, calm, deep-ink base with teal accent */
 
 [data-theme='dark'] {
-  --color-bg-primary: #0d1117;
-  --color-bg-scene: #161b22;
-  --color-bg-elevated: #1c2333;
-  --color-bg-surface: #21262d;
-  --color-bg-hover: #292e36;
+  --color-bg-primary: #0b0f17;      /* 深墨黑，侧边栏背景 */
+  --color-bg-scene: #0f1420;        /* 深炭灰，聊天区背景 */
+  --color-bg-elevated: #161f30;     /* 弹出框/输入框背景 */
+  --color-bg-surface: #1e293b;      /* 气泡背景 */
+  --color-bg-hover: rgba(255, 255, 255, 0.03); /* 极其轻微的悬浮反馈 */
+  --color-bg-active: rgba(13, 148, 136, 0.08); /* 淡淡的青色激活态 */
 
-  --color-border-default: #30363d;
-  --color-border-subtle: #21262d;
-  --color-border-accent: var(--color-accent-600);
+  --color-border-default: #1e293b;  /* 默认边框 */
+  --color-border-subtle: #161e2e;   /* 微妙边框 */
+  --color-border-accent: rgba(13, 148, 136, 0.3);
 
-  --color-text-primary: #e6edf3;
-  --color-text-secondary: #8b949e;
-  --color-text-muted: #6e7681;
+  --color-text-primary: #f8fafc;    /* 主要文字 */
+  --color-text-secondary: #94a3b8;  /* 次要文字 */
+  --color-text-muted: #64748b;      /* 静音文字 */
   --color-text-accent: var(--color-accent-400);
-  --color-text-inverse: #0d1117;
+  --color-text-inverse: #0b0f17;
 
-  --color-scrollbar-thumb: #30363d;
+  --color-scrollbar-thumb: #1e293b;
   --color-scrollbar-track: transparent;
 
   --color-card-bg: var(--color-bg-surface);
   --color-card-border: var(--color-border-subtle);
 
-  --color-input-bg: var(--color-bg-primary);
+  --color-input-bg: var(--color-bg-elevated);
   --color-input-border: var(--color-border-default);
   --color-input-focus-ring: var(--color-accent-500);
 
-  --color-error-bg: rgba(239, 68, 68, 0.1);
-  --color-error-border: rgba(239, 68, 68, 0.3);
-  --color-warning-bg: rgba(245, 158, 11, 0.1);
-  --color-warning-border: rgba(245, 158, 11, 0.3);
-  --color-success-bg: rgba(34, 197, 94, 0.1);
-  --color-success-border: rgba(34, 197, 94, 0.3);
+  --color-error-bg: rgba(239, 68, 68, 0.08);
+  --color-error-border: rgba(239, 68, 68, 0.2);
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
+  --color-warning-border: rgba(245, 158, 11, 0.2);
+  --color-success-bg: rgba(34, 197, 94, 0.08);
+  --color-success-border: rgba(34, 197, 94, 0.2);
+
+  /* ---- Code Block & Syntax Highlighting (Dark Mode) ---- */
+  --color-code-bg: #090d13;           /* Deep dark background */
+  --color-code-border: #1e293b;       /* Dark border */
+  --color-code-text: #e2e8f0;         /* Light grey text */
+  --color-code-comment: #64748b;      /* Muted grey for comments */
+  --color-code-keyword: #38bdf8;      /* Sky blue for keywords */
+  --color-code-string: #2dd4bf;       /* Teal/green for strings */
+  --color-code-number: #f97316;       /* Orange for numbers */
+  --color-code-title: #818cf8;        /* Indigo/purple for function/class names */
+  --color-code-built-in: #fbbf24;     /* Yellow for built-ins */
+  --color-code-attr: #a78bfa;         /* Light purple for attributes */
 }
 
 /* ---- Global Reset ---- */

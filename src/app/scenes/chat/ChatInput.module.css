@@ -1,6 +1,6 @@
 .composer {
   flex-shrink: 0;
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  padding: var(--space-4) var(--space-6) var(--space-6);
   background: var(--color-bg-scene);
 }
 
@@ -8,76 +8,126 @@
   max-width: var(--chat-column-width);
   margin: 0 auto;
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
+  flex-direction: column;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
-  padding: var(--space-2) var(--space-3);
-  transition: border-color var(--duration-fast);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  box-shadow: var(--shadow-md);
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
+/* When focused, only the outer container gets a subtle highlight */
 .composerInner:focus-within {
-  border-color: var(--color-input-focus-ring);
+  border-color: var(--color-accent-500);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12), var(--shadow-md);
 }
 
+.inputArea {
+  width: 100%;
+  margin-bottom: var(--space-2);
+  position: relative;
+}
+
+/* Textarea is clean — focus ring handled by .composerInner:focus-within */
 .textarea {
-  flex: 1;
+  width: 100%;
   background: transparent;
   border: none;
   outline: none;
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-base);
-  line-height: 1.5;
+  line-height: 1.6;
   resize: none;
-  min-height: 24px;
+  min-height: 36px;
   max-height: 200px;
   overflow-y: auto;
-  padding: var(--space-1) 0;
+  padding: 0;
 }
 
 .textarea::placeholder {
   color: var(--color-text-muted);
 }
 
+/* Toolbar row at the bottom of the composer */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.shortcutHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+}
+
+/* Send & Stop buttons styled beautifully */
 .sendButton,
 .stopButton {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: background var(--duration-fast), color var(--duration-fast);
+  transition: background var(--duration-fast), color var(--duration-fast), transform var(--duration-fast);
 }
 
 .sendButton {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+/* When active (has text) */
+.sendButton:not(.sendButtonDisabled) {
   background: var(--color-accent-500);
   color: #fff;
 }
 
-.sendButton:hover:not(:disabled) {
+.sendButton:not(.sendButtonDisabled):hover {
   background: var(--color-accent-400);
+  transform: translateY(-1px);
 }
 
 .sendButtonDisabled {
-  background: var(--color-bg-surface);
+  background: transparent;
   color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
+.sendIcon,
+.stopIcon {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .stopButton {
-  background: var(--color-error-bg);
+  background: rgba(239, 68, 68, 0.1);
   color: var(--color-error);
-  font-size: 12px;
 }
 
 .stopButton:hover {
   background: var(--color-error);
   color: #fff;
+  transform: translateY(-1px);
 }
