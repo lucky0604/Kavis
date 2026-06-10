@@ -141,39 +141,48 @@ export function ChatInput({ onSend, onStop, isStreaming, isConnecting, placehold
   return (
     <div className={styles.composer}>
       <div className={styles.composerInner}>
-        <RoleSelector />
-        <textarea
-          ref={textareaRef}
-          className={styles.textarea}
-          value={value}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder || 'Describe the task, goal, or bug'}
-          rows={1}
-          disabled={isConnecting}
-          autoFocus
-        />
-        {isStreaming ? (
-          <button
-            className={styles.stopButton}
-            onClick={onStop}
-            title="Stop generation (Esc)"
-            aria-label="停止生成"
-          >
-            ■
-          </button>
-        ) : (
-          <button
-            className={`${styles.sendButton} ${isDisabled ? styles.sendButtonDisabled : ''}`}
-            onClick={handleSend}
-            disabled={isDisabled}
-            title="Send message (Enter)"
-            aria-label="发送消息"
-            aria-disabled={isDisabled}
-          >
-            ↑
-          </button>
-        )}
+        <div className={styles.inputArea}>
+          <textarea
+            ref={textareaRef}
+            className={styles.textarea}
+            value={value}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder || 'Describe the task, goal, or bug'}
+            rows={1}
+            disabled={isConnecting}
+            autoFocus
+          />
+        </div>
+        <div className={styles.toolbar}>
+          <div className={styles.toolbarLeft}>
+            <RoleSelector />
+            <span className={styles.shortcutHint}>⌘Enter to send</span>
+          </div>
+          <div className={styles.toolbarRight}>
+            {isStreaming ? (
+              <button
+                className={styles.stopButton}
+                onClick={onStop}
+                title="Stop generation (Esc)"
+                aria-label="停止生成"
+              >
+                <span className={styles.stopIcon}>■</span>
+              </button>
+            ) : (
+              <button
+                className={`${styles.sendButton} ${isDisabled ? styles.sendButtonDisabled : ''}`}
+                onClick={handleSend}
+                disabled={isDisabled}
+                title="Send message (Enter)"
+                aria-label="发送消息"
+                aria-disabled={isDisabled}
+              >
+                <span className={styles.sendIcon}>↑</span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

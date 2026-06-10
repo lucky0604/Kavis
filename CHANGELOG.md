@@ -4,7 +4,48 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.2.1.0] - 2026-06-09
+## [0.2.3.0] - 2026-06-10
+
+### Added
+- Chat UI redesign with modern visual hierarchy and enhanced accessibility
+- ARIA attributes on all interactive buttons for screen reader support
+- Code blocks with copy functionality and syntax highlighting (light + dark themes)
+- Message avatars system with sender badges ("You" / "Janus Agent")
+- Suggested prompt cards in empty state for quick task initiation
+- Sleek pulsing dots thinking loader replacing static text
+
+### Changed
+- Removed 6 `!important` CSS declarations from chat input textarea
+- Refactored focus ring to outer container instead of fighting browser defaults
+- Enhanced theme palette with better contrast ratios (dark: deep ink, light: soft gray)
+- Improved message spacing and typography for readability
+- Toolbar layout at bottom of composer with keyboard shortcut hints
+
+---
+
+## [0.2.2.0] - 2026-06-10
+
+### Added
+- Operating mode + agent role architecture: Work Mode (纯工具) / Code Mode (Agentic/Plan/Ask/Debug)
+- Session sidebar: 260px 左侧边栏取代原 48px 图标栏 — 品牌标识、新建聊天、会话历史列表、删除按钮
+- Sessions API: list, load, delete session 完整 CRUD
+- ModeSelector: Work/Code segmented control in ChatPane 顶部
+- RoleSelector: Code role upward dropdown in ChatInput
+- Keyboard shortcut: Cmd+. / Ctrl+. 快速切换 Code roles
+- `/mode` 和 `/role` 斜杠命令
+
+### Changed
+- Chat store 发送 mode+role 替代旧一维 agentId
+- ChatPane placeholder 根据 mode/role 动态变化
+- 切换 mode/role 保留全部消息历史；`/clear` 才清空会话
+
+### Fixed
+- `extractPathSegment()` 目录遍历漏洞修复 — 添加 UUID v4 格式校验
+- NavBar 嵌套 `<button>` 修复 — 外层改为 `div[role=button]` + 键盘事件
+- 删除 AgentsScene 及相关路由
+
+### Security
+- API path segment 参数强制 UUID 格式校验，防止路径遍历攻击
 
 ### Added
 - Memory system: persistent SQLite/FTS5 memory with session observation, per-turn recall, and background consolidation

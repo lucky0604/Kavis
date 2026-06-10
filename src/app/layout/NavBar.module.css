@@ -12,25 +12,25 @@
 /* ---- Header ---- */
 .header {
   flex-shrink: 0;
-  padding: var(--space-3) var(--space-3) var(--space-2);
+  padding: var(--space-4) var(--space-4) var(--space-3);
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
 .brand {
-  font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: 600;
   color: var(--color-text-primary);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
   user-select: none;
 }
 
 /* ---- New Chat Button ---- */
 .newChatSection {
   flex-shrink: 0;
-  padding: 0 var(--space-3) var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
 }
 
 .newChatButton {
@@ -39,21 +39,23 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: 1px dashed var(--color-border-default);
-  border-radius: var(--radius-sm);
-  background: transparent;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-scene);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 500;
-  transition: background var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .newChatButton:hover {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
   border-color: var(--color-accent-500);
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
 }
 
 .newChatIcon {
@@ -78,33 +80,49 @@
 }
 
 .sessionItem {
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   text-align: left;
-  transition: background var(--duration-fast);
+  margin-bottom: 2px;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
 
 .sessionItem:hover {
   background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .sessionItemActive {
-  background: var(--color-accent-900);
-  color: var(--color-accent-400);
+  background: var(--color-bg-active);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.sessionItemActive::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  background: var(--color-accent-500);
+  border-radius: 0 2px 2px 0;
 }
 
 .sessionItemActive:hover {
-  background: var(--color-accent-800);
+  background: var(--color-bg-active);
 }
 
 .sessionName {
@@ -135,14 +153,15 @@
   cursor: pointer;
   font-size: 12px;
   opacity: 0;
-  transition: opacity var(--duration-fast), background var(--duration-fast);
+  transition: opacity var(--duration-fast), background var(--duration-fast), color var(--duration-fast);
 }
 
 .sessionItem:hover .deleteButton {
-  opacity: 1;
+  opacity: 0.5;
 }
 
 .deleteButton:hover {
+  opacity: 1 !important;
   background: var(--color-error-bg);
   color: var(--color-error);
 }
@@ -161,7 +180,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--color-border-subtle);
 }
 
@@ -186,5 +205,5 @@
 }
 
 .navButtonActive {
-  color: var(--color-accent-400);
+  color: var(--color-accent-500);
 }

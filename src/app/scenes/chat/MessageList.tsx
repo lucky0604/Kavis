@@ -10,6 +10,76 @@ interface MessageListProps {
   isStreaming: boolean;
 }
 
+// ---- Helper to extract raw text from React children ----
+function extractText(node: any): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join('');
+  if (node.props) {
+    if (node.props.children) {
+      return extractText(node.props.children);
+    }
+    if (node.props.value) {
+      return String(node.props.value);
+    }
+  }
+  return '';
+}
+
+// ---- Beautiful CodeBlock Component with Header and Copy Button ----
+function CodeBlock({ children }: { children: any }) {
+  const [copied, setCopied] = useState(false);
+
+  // Extract the code element
+  const codeElement = children && children.type === 'code' ? children : null;
+  const className = codeElement ? codeElement.props.className || '' : '';
+  const match = /language-(\w+)/.exec(className);
+  const language = match ? match[1] : 'text';
+
+  // Extract raw text for copying
+  const rawCode = codeElement ? extractText(codeElement.props.children) : '';
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(rawCode.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy code: ', err);
+    }
+  };
+
+  return (
+    <div className={styles.codeBlockContainer}>
+      <div className={styles.codeBlockHeader}>
+        <span className={styles.codeBlockLanguage}>{language}</span>
+        <button
+          className={styles.copyButton}
+          onClick={handleCopy}
+          aria-label={copied ? '代码已复制到剪贴板' : '复制代码到剪贴板'}
+          aria-pressed={copied}
+        >
+          {copied ? (
+            <>
+              <span className={styles.copyIcon}>✓</span>
+              <span>已复制</span>
+            </>
+          ) : (
+            <>
+              <span className={styles.copyIcon}>📋</span>
+              <span>复制</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className={styles.codeBlockPre}>
+        {children}
+      </pre>
+    </div>
+  );
+}
+
 // ---- Tool icon mapping ----
 const TOOL_ICONS: Record<string, string> = {
   web_search: '🔍',
@@ -192,6 +262,18 @@ function EventCard({ meta }: { meta: EventMeta }) {
   }
 }
 
+// ---- Beautiful CSS-only Thinking Loader ----
+function ThinkingLoader() {
+  return (
+    <div className={styles.thinkingContainer}>
+      <div className={styles.thinkingDot} />
+      <div className={styles.thinkingDot} />
+      <div className={styles.thinkingDot} />
+      <span className={styles.thinkingText}>Thinking...</span>
+    </div>
+  );
+}
+
 // ---- MessageBubble ----
 function MessageBubble({ message, isStreaming: isStreamingProp, i: msgIndex, messagesCount }: {
   message: Message;
@@ -236,12 +318,25 @@ function MessageBubble({ message, isStreaming: isStreamingProp, i: msgIndex, mes
     }
   };
 
-  const label = () => {
-    switch (message.role) {
-      case 'user': return 'You';
-      case 'assistant': return 'Janus';
-      default: return '';
+  const renderHeader = () => {
+    if (message.role === 'user') {
+      return (
+        <div className={styles.messageHeader}>
+          <div className={styles.avatarUser}>U</div>
+          <span className={styles.senderName}>You</span>
+        </div>
+      );
     }
+    if (message.role === 'assistant') {
+      return (
+        <div className={styles.messageHeader}>
+          <div className={styles.avatarAssistant}>J</div>
+          <span className={`${styles.senderName} ${styles.senderNameAssistant}`}>Janus</span>
+          <span className={styles.aiBadge}>Agent</span>
+        </div>
+      );
+    }
+    return null;
   };
 
   const isAssistant = message.role === 'assistant';
@@ -256,13 +351,25 @@ function MessageBubble({ message, isStreaming: isStreamingProp, i: msgIndex, mes
 
   return (
     <div className={`${styles.message} ${cls()}`}>
-      {label() && <div className={styles.label}>{label()}</div>}
+      {renderHeader()}
       <div className={styles.content}>
         {message.content ? (
           isAssistant ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}
+              components={{
+                pre: ({ children, ...props }: any) => {
+                  const isCodeBlock = children && (
+                    (children.type === 'code') || 
+                    (Array.isArray(children) && children.some((c: any) => c && c.type === 'code'))
+                  );
+                  if (isCodeBlock) {
+                    return <CodeBlock>{children}</CodeBlock>;
+                  }
+                  return <pre {...props}>{children}</pre>;
+                }
+              }}
             >
               {message.content}
             </ReactMarkdown>
@@ -270,7 +377,7 @@ function MessageBubble({ message, isStreaming: isStreamingProp, i: msgIndex, mes
             message.content
           )
         ) : (showThinking ? (
-          <span className={styles.thinking}>Thinking...</span>
+          <ThinkingLoader />
         ) : null)}
       </div>
     </div>
@@ -302,9 +409,13 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
       {renderedMessages}
       {showThinkingSkeleton && (
         <div className={`${styles.message} ${styles.assistantMessage}`}>
-          <div className={styles.label}>Janus</div>
+          <div className={styles.messageHeader}>
+            <div className={styles.avatarAssistant}>J</div>
+            <span className={`${styles.senderName} ${styles.senderNameAssistant}`}>Janus</span>
+            <span className={styles.aiBadge}>Agent</span>
+          </div>
           <div className={styles.content}>
-            <span className={styles.thinking}>Thinking...</span>
+            <ThinkingLoader />
           </div>
         </div>
       )}
