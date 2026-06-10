@@ -25,6 +25,13 @@ Thumbs.db
 .codex/
 .codegraph/
 .omo/
+.cursor/
+
+# Generated design artifacts (not source code)
+agent_flow/
+ralph/
+tasks/
+design-system/
 
 # Logs
 logs
