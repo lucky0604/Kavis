@@ -46,6 +46,13 @@
   padding: 0;
 }
 
+.textarea:focus,
+.textarea:focus-visible,
+.textarea:active {
+  border: none;
+  outline: none;
+}
+
 .textarea::placeholder {
   color: var(--color-text-muted);
 }
