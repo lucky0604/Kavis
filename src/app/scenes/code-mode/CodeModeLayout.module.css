@@ -1,0 +1,123 @@
+.threePaneLayout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Sidebar / left panel */
+.sidebar {
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--color-bg-secondary, #1a1a1a);
+  border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarHeader {
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary, #999);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+}
+
+.sidebarContent {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* Main chat center column */
+.mainChat {
+  flex: 1;
+  min-width: 400px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.chatScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.chatInner {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Inspector / right panel */
+.inspector {
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--color-bg-secondary, #1a1a1a);
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  display: flex;
+  flex-direction: column;
+}
+
+.inspectorHeader {
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary, #999);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.inspectorContent {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* Drag handles */
+.dragHandle {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.dragHandle:hover,
+.dragHandle:active {
+  background: var(--color-accent, rgba(45, 212, 191, 0.3));
+}
+
+.dragHandleLeft {
+  composes: dragHandle;
+}
+
+.dragHandleRight {
+  composes: dragHandle;
+}
+
+/* Empty state placeholders */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-tertiary, #555);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+}
