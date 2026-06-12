@@ -1,0 +1,189 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ceremony {
+  background: var(--color-bg-secondary, #1a1a1a);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  width: 480px;
+  max-width: 90vw;
+  padding: 32px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary, #eee);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* Stepper */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+}
+
+.stepCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  color: var(--color-text-tertiary, #555);
+  transition: all 0.3s ease;
+}
+
+.stepActive .stepCircle {
+  border-color: var(--color-accent, rgba(45, 212, 191, 0.8));
+  color: var(--color-accent, rgba(45, 212, 191, 0.9));
+  box-shadow: 0 0 16px rgba(45, 212, 191, 0.2);
+}
+
+.stepDone .stepCircle {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.stepLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-tertiary, #555);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stepActive .stepLabel {
+  color: var(--color-accent, rgba(45, 212, 191, 0.9));
+}
+
+.stepDone .stepLabel {
+  color: #22c55e;
+}
+
+.connector {
+  width: 32px;
+  height: 2px;
+  background: var(--color-border, rgba(255, 255, 255, 0.08));
+  margin-bottom: 22px;
+}
+
+.connectorDone {
+  composes: connector;
+  background: #22c55e;
+}
+
+/* Todo editor */
+.todoEditor {
+  background: var(--color-bg-primary, #111);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  min-height: 120px;
+}
+
+.todoEditorLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #999);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.todoTextarea {
+  width: 100%;
+  min-height: 90px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary, #eee);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+
+/* CTA */
+.ctaButton {
+  width: 100%;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(59, 130, 246, 0.2));
+  color: var(--color-accent, rgba(45, 212, 191, 0.9));
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.ctaButton:hover {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.3), rgba(59, 130, 246, 0.3));
+  box-shadow: 0 4px 16px rgba(45, 212, 191, 0.15);
+}
+
+.ctaButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Handoff divider for chat history */
+.handoffDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0;
+  font-size: 12px;
+  color: var(--color-text-tertiary, #555);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+.handoffDividerLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-border, rgba(255, 255, 255, 0.1)),
+    transparent
+  );
+}
+
+.handoffDividerDiamond {
+  color: var(--color-accent, rgba(45, 212, 191, 0.6));
+}

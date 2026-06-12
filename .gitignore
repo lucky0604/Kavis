@@ -51,3 +51,7 @@ agent_flow/
 ralph/
 tasks/
 pnpm-lock.yaml
+
+# Generated Electron build output (compiled from .ts sources)
+electron/main.js
+electron/preload.js

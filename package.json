@@ -6,8 +6,8 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
-    "dev:electron": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --outdir=electron --format=esm --external:electron && electron .",
-    "build": "tsc -b && vite build && esbuild electron/main.ts electron/preload.ts --bundle --platform=node --outdir=electron --format=esm --external:electron",
+    "dev:electron": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --outdir=electron --format=esm --external:electron --external:node-pty && electron .",
+    "build": "tsc -b && vite build && esbuild electron/main.ts electron/preload.ts --bundle --platform=node --outdir=electron --format=esm --external:electron --external:node-pty",
     "build:electron": "npm run build && electron-builder",
     "preview": "vite preview",
     "start": "tsx server/prod.ts",
@@ -18,10 +18,13 @@
   "dependencies": {
     "@evomap/evolver": "^1.89.0",
     "@extractus/article-extractor": "^8.1.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "better-sqlite3": "^12.10.0",
     "dotenv": "^16.4.5",
     "gpt-tokenizer": "^2.1.2",
     "lucide-react": "^0.400.0",
+    "node-pty": "^1.1.0",
     "openai": "^4.55.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -66,6 +69,10 @@
       {
         "from": "node_modules/@evomap",
         "to": "node_modules/@evomap"
+      },
+      {
+        "from": "node_modules/node-pty",
+        "to": "node_modules/node-pty"
       }
     ],
     "mac": {

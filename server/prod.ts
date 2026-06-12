@@ -11,6 +11,9 @@ import { agentRegistry } from './agents/registry';
 import { OPERATING_MODES, AGENT_ROLES, promptFileKey, compositeId, compositeName } from './agents/config';
 import Database from 'better-sqlite3';
 
+import { handleCodeModeRoutes } from './code-mode/handoff-routes';
+import { handleStreamRoutes } from './code-mode/stream-routes';
+
 // Register all tools (side-effect imports)
 import './tools/read-file';
 import './tools/list-dir-tree';
@@ -240,6 +243,18 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse): Promise<vo
 
   if (req.method === 'DELETE' && pathname.startsWith('/sessions/')) {
     return handleSessionDelete(req, res);
+  }
+
+  // Code Mode relay routes — workspace resolved from query param or env
+  if (pathname.startsWith('/code-mode/')) {
+    const codeModeWorkspace = url.searchParams.get('workspace')
+      || process.env.JANUS_WORKSPACE
+      || process.cwd();
+    const fullPath = '/api' + pathname;
+    const handled =
+      handleCodeModeRoutes(req, res, fullPath, codeModeWorkspace) ||
+      handleStreamRoutes(req, res, fullPath, codeModeWorkspace);
+    if (handled) return Promise.resolve();
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });

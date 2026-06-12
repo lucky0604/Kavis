@@ -88,10 +88,19 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   activeRole: 'agentic',
 
   setMode: (modeId: OperatingModeId) => {
-    const { activeRole } = get();
+    const { activeRole, activeMode: prevMode } = get();
+    if (modeId === prevMode) return;
     set({ activeMode: modeId });
     const key = compositeKey(modeId, modeId === 'code' ? activeRole : undefined);
     useChatStore.getState().switchAgent(key);
+    // Sync scene navigation with mode selection
+    const sceneStore = useSceneStore.getState();
+    if (modeId === 'code' && sceneStore.currentScene !== 'code_mode') {
+      set({ activeMode: modeId }); // ensure set before navigate
+      useSceneStore.setState({ currentScene: 'code_mode' });
+    } else if (modeId !== 'code' && sceneStore.currentScene === 'code_mode') {
+      useSceneStore.setState({ currentScene: 'chat' });
+    }
   },
 
   setRole: (roleId: AgentRoleId) => {
@@ -132,19 +141,94 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 }));
 
+// ---- Layout Store (Code Mode three-pane widths) ----
+interface LayoutState {
+  sidebarWidth: number;
+  inspectorWidth: number;
+  ptyHeight: number;
+  setSidebarWidth: (w: number) => void;
+  setInspectorWidth: (w: number) => void;
+  setPtyHeight: (h: number) => void;
+}
+
+function loadNum(key: string, fallback: number): number {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? Number(v) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export const useLayoutStore = create<LayoutState>((set) => ({
+  sidebarWidth: loadNum('janus_sidebar_w', 260),
+  inspectorWidth: loadNum('janus_inspector_w', 380),
+  ptyHeight: loadNum('janus_pty_h', 40),
+
+  setSidebarWidth: (w) => {
+    localStorage.setItem('janus_sidebar_w', String(w));
+    set({ sidebarWidth: w });
+  },
+  setInspectorWidth: (w) => {
+    localStorage.setItem('janus_inspector_w', String(w));
+    set({ inspectorWidth: w });
+  },
+  setPtyHeight: (h) => {
+    localStorage.setItem('janus_pty_h', String(h));
+    set({ ptyHeight: h });
+  },
+}));
+
+// ---- Code-Mode Store ----
+import type { CliToolId } from '../../shared/types';
+
+interface CodeModeState {
+  activeCli: CliToolId;
+  activeModel: string;
+  isRelaying: boolean;
+  isExecuting: boolean;
+  activeProcessId: number | null;
+  setActiveCli: (cli: CliToolId) => void;
+  setActiveModel: (model: string) => void;
+  setRelaying: (v: boolean) => void;
+  setExecuting: (v: boolean) => void;
+  setActiveProcessId: (pid: number | null) => void;
+}
+
+export const useCodeModeStore = create<CodeModeState>((set) => ({
+  activeCli: 'claudecode',
+  activeModel: '',
+  isRelaying: false,
+  isExecuting: false,
+  activeProcessId: null,
+  setActiveCli: (cli) => set({ activeCli: cli }),
+  setActiveModel: (model) => set({ activeModel: model }),
+  setRelaying: (v) => set({ isRelaying: v }),
+  setExecuting: (v) => set({ isExecuting: v }),
+  setActiveProcessId: (pid) => set({ activeProcessId: pid }),
+}));
+
 // ---- Scene Store ----
-type Scene = 'welcome' | 'chat' | 'settings';
+type Scene = 'welcome' | 'chat' | 'settings' | 'terminal_spike' | 'code_mode';
 
 interface SceneState {
   currentScene: Scene;
   navigate: (scene: Scene) => void;
 }
 
-export const useSceneStore = create<SceneState>((set) => ({
+export const useSceneStore = create<SceneState>((set, get) => ({
   currentScene: 'welcome',
 
   navigate: (scene: Scene) => {
+    if (scene === get().currentScene) return;
     set({ currentScene: scene });
+    // Sync agent mode when navigating to/from code_mode via NavBar
+    const agentState = useAgentStore.getState();
+    if (scene === 'code_mode' && agentState.activeMode !== 'code') {
+      useAgentStore.setState({ activeMode: 'code' });
+    } else if (scene === 'chat' && agentState.activeMode === 'code') {
+      useAgentStore.setState({ activeMode: 'work' });
+    }
   },
 }));
 

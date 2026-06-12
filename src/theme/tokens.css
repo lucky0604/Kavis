@@ -34,14 +34,19 @@
   --color-bg-surface: #f1f5f9;      /* 气泡背景 */
   --color-bg-hover: rgba(0, 0, 0, 0.02); /* 极其轻微的悬浮反馈 */
   --color-bg-active: rgba(13, 148, 136, 0.05); /* 淡淡的青色激活态 */
+  /* ---- Backward-compat aliases (used by code-mode) ---- */
+  --color-bg-secondary: var(--color-bg-primary);
+  --color-bg-tertiary: var(--color-bg-surface);
 
   --color-border-default: #e2e8f0;  /* 默认边框 */
   --color-border-subtle: #f1f5f9;   /* 微妙边框 */
   --color-border-accent: rgba(13, 148, 136, 0.2);
+  --color-border: var(--color-border-default);
 
   --color-text-primary: #0f172a;    /* 主要文字 */
   --color-text-secondary: #475569;  /* 次要文字 */
   --color-text-muted: #94a3b8;      /* 静音文字 */
+  --color-text-tertiary: var(--color-text-muted);
   --color-text-accent: var(--color-accent-600);
   --color-text-inverse: #ffffff;
 

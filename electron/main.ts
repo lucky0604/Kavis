@@ -11,6 +11,7 @@ import { spawn } from 'child_process';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { setupPtyHandlers, teardownAllPtySessions } from './pty-manager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -139,11 +140,13 @@ function createWindow(port?: number) {
 
 // ---- IPC Handlers (must be registered before app.whenReady) ----
 
+setupPtyHandlers(ipcMain, () => mainWindow);
+
 ipcMain.handle('select-folder', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory'],
     title: 'Select Workspace Folder',
-  });
+  }) as unknown as Electron.OpenDialogReturnValue;
   if (result.canceled || result.filePaths.length === 0) return null;
   return result.filePaths[0];
 });
@@ -176,6 +179,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', async () => {
+  teardownAllPtySessions();
   if (serverHandle) {
     await serverHandle.close();
   }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSceneStore, useThemeStore, useSessionStore } from '../../stores/app-stores';
+import { useSceneStore, useThemeStore, useSessionStore, useAgentStore } from '../../stores/app-stores';
 import { useChatStore } from '../../stores/chat-store';
 import styles from './NavBar.module.css';
 
@@ -15,9 +15,14 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function NavBar() {
+interface Props {
+  minimal?: boolean;
+}
+
+export function NavBar({ minimal = false }: Props) {
   const { currentScene, navigate } = useSceneStore();
   const { theme, toggle } = useThemeStore();
+  const { activeMode } = useAgentStore();
   const { sessions, currentSessionId, setSessions, setCurrentSession, removeSession } = useSessionStore();
   const resetSession = useChatStore((s) => s.resetSession);
   const [loading, setLoading] = useState(false);
@@ -38,8 +43,8 @@ export function NavBar() {
   };
 
   useEffect(() => {
-    fetchSessions();
-  }, []);
+    if (!minimal) fetchSessions();
+  }, [minimal]);
 
   const handleNewChat = () => {
     resetSession();
@@ -86,58 +91,93 @@ export function NavBar() {
     }
   };
 
+  const handleBackToWork = () => {
+    navigate('chat');
+  };
+
   return (
-    <nav className={styles.navbar}>
+    <nav className={`${styles.navbar} ${minimal ? styles.navbarMinimal : ''}`}>
       {/* Brand */}
       <div className={styles.header}>
         <span className={styles.brand}>Janus</span>
-      </div>
-
-      {/* New Chat */}
-      <div className={styles.newChatSection}>
-        <button className={styles.newChatButton} onClick={handleNewChat}>
-          <span className={styles.newChatIcon}>+</span>
-          New chat
-        </button>
-      </div>
-
-      {/* Session List */}
-      <div className={styles.sessionList}>
-        {sessions.length === 0 ? (
-          <div className={styles.emptySessions}>
-            {loading ? 'Loading...' : 'No sessions yet'}
-          </div>
-        ) : (
-          sessions.map((sess) => (
-            <div
-              key={sess.sessionId}
-              role="button"
-              tabIndex={0}
-              className={`${styles.sessionItem} ${sess.sessionId === currentSessionId ? styles.sessionItemActive : ''}`}
-              onClick={() => handleSelectSession(sess.sessionId)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleSelectSession(sess.sessionId);
-                }
-              }}
-            >
-              <span className={styles.sessionName}>{sess.name}</span>
-              <span className={styles.sessionMeta}>{formatRelative(sess.lastActiveAt)}</span>
-              <button
-                className={styles.deleteButton}
-                onClick={(e) => handleDeleteSession(e, sess.sessionId)}
-                title="Delete session"
-              >
-                ×
-              </button>
-            </div>
-          ))
+        {minimal && (
+          <span className={styles.modeBadge}>Code</span>
         )}
       </div>
 
+      {/* Minimal mode: just show a back button instead of session list */}
+      {minimal ? (
+        <div className={styles.minimalContent}>
+          <button className={styles.backButton} onClick={handleBackToWork}>
+            ← Work Mode
+          </button>
+          <div className={styles.minimalHint}>
+            Multi-agent relay orchestrator
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* New Chat */}
+          <div className={styles.newChatSection}>
+            <button className={styles.newChatButton} onClick={handleNewChat}>
+              <span className={styles.newChatIcon}>+</span>
+              New chat
+            </button>
+          </div>
+
+          {/* Session List */}
+          <div className={styles.sessionList}>
+            {sessions.length === 0 ? (
+              <div className={styles.emptySessions}>
+                {loading ? 'Loading...' : 'No sessions yet'}
+              </div>
+            ) : (
+              sessions.map((sess) => (
+                <div
+                  key={sess.sessionId}
+                  role="button"
+                  tabIndex={0}
+                  className={`${styles.sessionItem} ${sess.sessionId === currentSessionId ? styles.sessionItemActive : ''}`}
+                  onClick={() => handleSelectSession(sess.sessionId)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectSession(sess.sessionId);
+                    }
+                  }}
+                >
+                  <span className={styles.sessionName}>{sess.name}</span>
+                  <span className={styles.sessionMeta}>{formatRelative(sess.lastActiveAt)}</span>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={(e) => handleDeleteSession(e, sess.sessionId)}
+                    title="Delete session"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
       {/* Bottom actions */}
       <div className={styles.navBottom}>
+        <button
+          className={`${styles.navButton} ${activeMode === 'code' ? styles.navButtonActive : ''}`}
+          onClick={() => navigate(activeMode === 'code' ? 'chat' : 'code_mode')}
+          title={activeMode === 'code' ? 'Back to Work Mode' : 'Code Mode'}
+        >
+          ⚡
+        </button>
+        <button
+          className={`${styles.navButton} ${currentScene === 'terminal_spike' ? styles.navButtonActive : ''}`}
+          onClick={() => navigate('terminal_spike')}
+          title="Terminal Spike"
+        >
+          ＞_
+        </button>
         <button
           className={`${styles.navButton} ${currentScene === 'settings' ? styles.navButtonActive : ''}`}
           onClick={() => navigate('settings')}
