@@ -6,12 +6,22 @@ import { SceneArea } from './SceneArea';
 export function AppLayout() {
   const { currentScene } = useSceneStore();
 
-  // Welcome scene is fullscreen onboarding — no NavBar
   if (currentScene === 'welcome') {
     return <SceneArea />;
   }
 
-  // All other scenes (chat, agents, settings) show NavBar
+  // Code Mode has its own three-pane layout — use a minimal nav strip
+  if (currentScene === 'code_mode') {
+    return (
+      <div className={styles.layout}>
+        <NavBar minimal />
+        <div className={styles.sceneContainer}>
+          <SceneArea />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.layout}>
       <NavBar />
