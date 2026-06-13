@@ -10,11 +10,9 @@ export function AppLayout() {
     return <SceneArea />;
   }
 
-  // Code Mode has its own three-pane layout — use a minimal nav strip
   if (currentScene === 'code_mode') {
     return (
       <div className={styles.layout}>
-        <NavBar minimal />
         <div className={styles.sceneContainer}>
           <SceneArea />
         </div>

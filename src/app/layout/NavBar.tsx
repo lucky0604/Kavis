@@ -15,11 +15,7 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-interface Props {
-  minimal?: boolean;
-}
-
-export function NavBar({ minimal = false }: Props) {
+export function NavBar() {
   const { currentScene, navigate } = useSceneStore();
   const { theme, toggle } = useThemeStore();
   const { activeMode } = useAgentStore();
@@ -30,7 +26,7 @@ export function NavBar({ minimal = false }: Props) {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sessions');
+      const res = await fetch('/api/sessions?scope=work');
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -43,8 +39,8 @@ export function NavBar({ minimal = false }: Props) {
   };
 
   useEffect(() => {
-    if (!minimal) fetchSessions();
-  }, [minimal]);
+    fetchSessions();
+  }, []);
 
   const handleNewChat = () => {
     resetSession();
@@ -91,76 +87,55 @@ export function NavBar({ minimal = false }: Props) {
     }
   };
 
-  const handleBackToWork = () => {
-    navigate('chat');
-  };
-
   return (
-    <nav className={`${styles.navbar} ${minimal ? styles.navbarMinimal : ''}`}>
+    <nav className={styles.navbar}>
       {/* Brand */}
       <div className={styles.header}>
         <span className={styles.brand}>Janus</span>
-        {minimal && (
-          <span className={styles.modeBadge}>Code</span>
-        )}
       </div>
 
-      {/* Minimal mode: just show a back button instead of session list */}
-      {minimal ? (
-        <div className={styles.minimalContent}>
-          <button className={styles.backButton} onClick={handleBackToWork}>
-            ← Work Mode
-          </button>
-          <div className={styles.minimalHint}>
-            Multi-agent relay orchestrator
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* New Chat */}
-          <div className={styles.newChatSection}>
-            <button className={styles.newChatButton} onClick={handleNewChat}>
-              <span className={styles.newChatIcon}>+</span>
-              New chat
-            </button>
-          </div>
+      {/* New Chat */}
+      <div className={styles.newChatSection}>
+        <button className={styles.newChatButton} onClick={handleNewChat}>
+          <span className={styles.newChatIcon}>+</span>
+          New chat
+        </button>
+      </div>
 
-          {/* Session List */}
-          <div className={styles.sessionList}>
-            {sessions.length === 0 ? (
-              <div className={styles.emptySessions}>
-                {loading ? 'Loading...' : 'No sessions yet'}
-              </div>
-            ) : (
-              sessions.map((sess) => (
-                <div
-                  key={sess.sessionId}
-                  role="button"
-                  tabIndex={0}
-                  className={`${styles.sessionItem} ${sess.sessionId === currentSessionId ? styles.sessionItemActive : ''}`}
-                  onClick={() => handleSelectSession(sess.sessionId)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleSelectSession(sess.sessionId);
-                    }
-                  }}
-                >
-                  <span className={styles.sessionName}>{sess.name}</span>
-                  <span className={styles.sessionMeta}>{formatRelative(sess.lastActiveAt)}</span>
-                  <button
-                    className={styles.deleteButton}
-                    onClick={(e) => handleDeleteSession(e, sess.sessionId)}
-                    title="Delete session"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))
-            )}
+      {/* Session List */}
+      <div className={styles.sessionList}>
+        {sessions.length === 0 ? (
+          <div className={styles.emptySessions}>
+            {loading ? 'Loading...' : 'No sessions yet'}
           </div>
-        </>
-      )}
+        ) : (
+          sessions.map((sess) => (
+            <div
+              key={sess.sessionId}
+              role="button"
+              tabIndex={0}
+              className={`${styles.sessionItem} ${sess.sessionId === currentSessionId ? styles.sessionItemActive : ''}`}
+              onClick={() => handleSelectSession(sess.sessionId)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectSession(sess.sessionId);
+                }
+              }}
+            >
+              <span className={styles.sessionName}>{sess.name}</span>
+              <span className={styles.sessionMeta}>{formatRelative(sess.lastActiveAt)}</span>
+              <button
+                className={styles.deleteButton}
+                onClick={(e) => handleDeleteSession(e, sess.sessionId)}
+                title="Delete session"
+              >
+                ×
+              </button>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Bottom actions */}
       <div className={styles.navBottom}>

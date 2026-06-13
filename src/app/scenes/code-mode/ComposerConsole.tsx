@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useProjectStore } from '../../../stores/project-store';
+import { useCodeModeSessionStore } from '../../../stores/code-mode-session-store';
 import { useCodeModeStore } from '../../../stores/app-stores';
 import type { CliDetectionResult, CliToolId } from '../../../../shared/types';
 import styles from './ComposerConsole.module.css';
@@ -57,19 +59,31 @@ function PickerSheet({ title, options, onSelect, onClose }: PickerSheetProps) {
 }
 
 interface Props {
-  onStreamEvent?: (event: { type: string; data: unknown }) => void;
+  onStreamEvent?: (sessionId: string, event: { type: string; data: unknown }) => void;
   onSend?: (prompt: string) => void;
-  workspacePath?: string;
 }
 
-export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props) {
-  const { activeCli, activeModel, isExecuting, setActiveCli, setActiveModel, setExecuting } = useCodeModeStore();
+export function ComposerConsole({ onStreamEvent, onSend }: Props) {
+  const { activeCli, activeModel, setActiveCli, setActiveModel } = useCodeModeStore();
+  const {
+    activeSessionId,
+    ensureSessionBeforeSend,
+    applyStreamEvent,
+    setSessionExecuting,
+    persistSession,
+    isSessionExecuting,
+  } = useCodeModeSessionStore();
+  const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const [cliResults, setCliResults] = useState<CliDetectionResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [sheetType, setSheetType] = useState<'cli' | 'model' | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const abortControllersRef = useRef(new Map<string, AbortController>());
   const isNarrow = useIsNarrow();
+
+  const isCurrentSessionExecuting = activeSessionId
+    ? isSessionExecuting(activeSessionId)
+    : false;
 
   useEffect(() => {
     setLoading(true);
@@ -80,42 +94,76 @@ export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props)
         const available = data.clis.find((c) => c.available);
         if (available) {
           setActiveCli(available.id);
-          setActiveModel(available.models?.[0] ?? '');
+          setActiveModel(available.defaultModel ?? available.models?.[0] ?? '');
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [setActiveCli, setActiveModel]);
 
   const handleCliChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value as CliToolId;
     setActiveCli(id);
     const cli = cliResults.find((c) => c.id === id);
-    setActiveModel(cli?.models?.[0] ?? '');
+    setActiveModel(cli?.defaultModel ?? cli?.models?.[0] ?? '');
   };
 
   const handleSend = async () => {
     const prompt = input.trim();
-    if (!prompt || isExecuting) return;
+    if (!prompt || isCurrentSessionExecuting) return;
+
+    const activeProject = useProjectStore.getState().getActiveProject();
+    if (!activeProject) {
+      const sessionId = useCodeModeSessionStore.getState().activeSessionId;
+      if (sessionId) {
+        applyStreamEvent(sessionId, {
+          type: 'error',
+          data: { message: 'Import or select a project in the sidebar first.' },
+        });
+      }
+      return;
+    }
+
+    const ready = await ensureSessionBeforeSend();
+    if (!ready) {
+      const sessionId = useCodeModeSessionStore.getState().activeSessionId;
+      if (sessionId) {
+        applyStreamEvent(sessionId, {
+          type: 'error',
+          data: { message: 'Could not start a session for this project.' },
+        });
+      }
+      return;
+    }
+
+    const sessionId = useCodeModeSessionStore.getState().activeSessionId;
+    if (!sessionId) return;
 
     setInput('');
-    setExecuting(true);
+    setSessionExecuting(sessionId, true);
     onSend?.(prompt);
 
     const abort = new AbortController();
-    abortRef.current = abort;
+    abortControllersRef.current.set(sessionId, abort);
 
     try {
-      const wsParam = workspacePath ? `?workspace=${encodeURIComponent(workspacePath)}` : '';
+      const wsParam = `?workspace=${encodeURIComponent(activeProject.path)}`;
       const res = await fetch(`/api/code-mode/stream${wsParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cliId: activeCli, prompt, model: activeModel }),
+        body: JSON.stringify({
+          cliId: activeCli,
+          prompt,
+          model: activeModel,
+          workspacePath: activeProject.path,
+          sessionId,
+        }),
         signal: abort.signal,
       });
 
       if (!res.ok || !res.body) {
-        onStreamEvent?.({ type: 'error', data: { message: `HTTP ${res.status}` } });
+        applyStreamEvent(sessionId, { type: 'error', data: { message: `HTTP ${res.status}` } });
+        onStreamEvent?.(sessionId, { type: 'error', data: { message: `HTTP ${res.status}` } });
         return;
       }
 
@@ -135,33 +183,40 @@ export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props)
           if (line.startsWith('data: ')) {
             try {
               const event = JSON.parse(line.slice(6));
-              onStreamEvent?.(event);
+              applyStreamEvent(sessionId, event);
+              onStreamEvent?.(sessionId, event);
+              if (event.type === 'done') {
+                await persistSession(sessionId);
+              }
             } catch { /* skip malformed */ }
           }
         }
       }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        onStreamEvent?.({ type: 'error', data: { message: String(err) } });
+        const errorEvent = { type: 'error', data: { message: String(err) } };
+        applyStreamEvent(sessionId, errorEvent);
+        onStreamEvent?.(sessionId, errorEvent);
       }
     } finally {
-      setExecuting(false);
-      abortRef.current = null;
+      setSessionExecuting(sessionId, false);
+      abortControllersRef.current.delete(sessionId);
     }
   };
 
   const handleCancel = () => {
-    abortRef.current?.abort();
+    if (!activeSessionId) return;
+    abortControllersRef.current.get(activeSessionId)?.abort();
   };
 
   const currentCli = cliResults.find((c) => c.id === activeCli);
   const models = currentCli?.models ?? [];
-  const displayPath = workspacePath || (typeof window !== 'undefined' ? window.location.origin : '');
+  const canSend = !!activeProjectId && !isCurrentSessionExecuting;
 
   const handleCliSheetSelect = useCallback((id: string) => {
     setActiveCli(id as CliToolId);
     const cli = cliResults.find((c) => c.id === id);
-    setActiveModel(cli?.models?.[0] ?? '');
+    setActiveModel(cli?.defaultModel ?? cli?.models?.[0] ?? '');
     setSheetType(null);
   }, [cliResults, setActiveCli, setActiveModel]);
 
@@ -172,10 +227,6 @@ export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props)
 
   return (
     <div className={styles.composerContainer}>
-      <div className={styles.pathIndicator}>
-        会话位于 {displayPath}
-      </div>
-
       <div className={styles.dropdownRow}>
         <div className={styles.selectWrapper}>
           <div className={styles.selectLabel}>Agent CLI</div>
@@ -183,7 +234,7 @@ export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props)
             className={styles.select}
             value={activeCli}
             onChange={handleCliChange}
-            disabled={loading || isExecuting}
+            disabled={loading || isCurrentSessionExecuting}
             onClick={isNarrow ? (e) => { e.preventDefault(); setSheetType('cli'); } : undefined}
           >
             {loading ? (
@@ -206,7 +257,7 @@ export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props)
             list={isNarrow ? undefined : `models-${activeCli}`}
             value={activeModel}
             onChange={(e) => setActiveModel(e.target.value)}
-            disabled={isExecuting}
+            disabled={isCurrentSessionExecuting}
             placeholder="Select or type model..."
             onClick={isNarrow ? () => setSheetType('model') : undefined}
             readOnly={isNarrow}
@@ -225,32 +276,25 @@ export function ComposerConsole({ onStreamEvent, onSend, workspacePath }: Props)
         <input
           type="text"
           className={styles.textInput}
-          placeholder={isExecuting ? 'Executing...' : 'Type a message to relay...'}
+          placeholder={
+            !activeProjectId
+              ? 'Import a project to start…'
+              : isCurrentSessionExecuting
+                ? 'Executing...'
+                : 'Type a message to relay...'
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={isExecuting}
+          disabled={!canSend}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              handleSend();
+              void handleSend();
             }
           }}
         />
-        {isExecuting && (
-          <button
-            onClick={handleCancel}
-            style={{
-              padding: '8px 16px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              color: '#ef4444',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
+        {isCurrentSessionExecuting && (
+          <button onClick={handleCancel} className={styles.cancelButton}>
             Cancel
           </button>
         )}
