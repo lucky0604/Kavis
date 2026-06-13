@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import type { Message, ToolMeta, EventMeta, MemoryRecallMeta, SkillReviewMeta, EvolutionEventMeta } from '@shared/types';
+import type { Message, ToolMeta, EventMeta, MemoryRecallMeta, SkillReviewMeta, EvolutionEventMeta, ToolApprovalMeta } from '@shared/types';
+import { useChatStore } from '../../../stores/chat-store';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -250,6 +251,53 @@ function EvolutionEventCard({ meta }: { meta: EvolutionEventMeta }) {
   );
 }
 
+// ---- Tool Write Approval Card ----
+function ToolApprovalCard({ meta }: { meta: ToolApprovalMeta }) {
+  const respondToApproval = useChatStore((s) => s.respondToApproval);
+  const isPending = meta.status === 'pending';
+  const statusLabel =
+    meta.status === 'approved' ? '已批准' :
+    meta.status === 'denied' ? '已拒绝' :
+    meta.status === 'timeout' ? '已超时' :
+    '等待确认';
+
+  return (
+    <div className={`${styles.approvalCard} ${isPending ? styles.approvalPending : ''}`}>
+      <div className={styles.approvalHeader}>
+        <span>✏️</span>
+        <span>写入文件请求</span>
+        <span className={styles.approvalStatus}>{statusLabel}</span>
+      </div>
+      <div className={styles.approvalBody}>
+        <div className={styles.approvalPath}>{meta.path}</div>
+        <div className={styles.approvalMeta}>{meta.bytes.toLocaleString()} bytes</div>
+        {meta.contentPreview && (
+          <pre className={styles.approvalPreview}>
+            {meta.contentPreview.slice(0, 600)}
+            {meta.contentPreview.length > 600 ? '\n…' : ''}
+          </pre>
+        )}
+      </div>
+      {isPending && (
+        <div className={styles.approvalActions}>
+          <button
+            className={styles.approveBtn}
+            onClick={() => respondToApproval(meta.approvalId, true)}
+          >
+            允许写入
+          </button>
+          <button
+            className={styles.denyBtn}
+            onClick={() => respondToApproval(meta.approvalId, false)}
+          >
+            拒绝
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Event Meta Router ----
 function EventCard({ meta }: { meta: EventMeta }) {
   switch (meta.type) {
@@ -259,6 +307,8 @@ function EventCard({ meta }: { meta: EventMeta }) {
       return <SkillReviewCard meta={meta} />;
     case 'evolution_event':
       return <EvolutionEventCard meta={meta} />;
+    case 'tool_approval':
+      return <ToolApprovalCard meta={meta} />;
   }
 }
 
