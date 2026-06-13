@@ -1,0 +1,79 @@
+.sessionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 28px;
+  margin: 1px 8px 1px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  min-height: 28px;
+}
+
+.sessionItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sessionItem:focus-visible {
+  outline: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.2));
+  outline-offset: -1px;
+}
+
+.sessionItemActive {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-muted, rgba(255, 255, 255, 0.35));
+  flex-shrink: 0;
+}
+
+.dotRunning {
+  background: var(--color-accent, #14b8a6);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.sessionName {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.72));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionItemActive .sessionName {
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.92));
+}
+
+.deleteButton {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.sessionItem:hover .deleteButton,
+.sessionItem:focus-within .deleteButton {
+  opacity: 1;
+}
+
+.deleteButton:hover {
+  color: var(--color-error);
+}
