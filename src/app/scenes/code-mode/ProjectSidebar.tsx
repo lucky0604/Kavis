@@ -22,7 +22,7 @@ function OpenFolderIcon() {
 export function ProjectSidebar() {
   const { projects, activeProjectId, addProject, setActiveProject, removeProject, fetchProjects } =
     useProjectStore();
-  const { switchToProject, createSession } = useCodeModeSessionStore();
+  const { switchToProject } = useCodeModeSessionStore();
   const { selectFolder } = useNativeBridge();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,6 @@ export function ProjectSidebar() {
 
       const data = await res.json();
       addProject(data.project);
-      await createSession(data.project.path);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);

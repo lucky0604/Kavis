@@ -20,7 +20,7 @@ export function CodeModeScene() {
   const { projects, activeProjectId } = useProjectStore();
   const {
     activeSessionId,
-    messages,
+    sessionCache,
     appendExchange,
     switchToProject,
     isSessionExecuting,
@@ -29,6 +29,14 @@ export function CodeModeScene() {
   const initializedProjectIdRef = useRef<string | null>(null);
   const toolsCacheRef = useRef(new Map<string, ToolCardData[]>());
   const [tools, setTools] = useStateTools(activeSessionId, toolsCacheRef);
+
+  // Derive messages from the session cache keyed by activeSessionId.
+  // This is the single source of truth — immune to async race conditions
+  // where the store's top-level `messages` field could temporarily lag
+  // behind an activeSessionId change.
+  const messages = activeSessionId
+    ? (sessionCache[activeSessionId] ?? [])
+    : [];
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
   const isThinking = activeSessionId ? isSessionExecuting(activeSessionId) : false;
@@ -75,7 +83,7 @@ export function CodeModeScene() {
     </div>
   ) : (
     <>
-      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+      <div key={activeSessionId ?? '__none__'} ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         <div style={{ maxWidth: '720px', margin: '0 auto' }}>
           {messages.length === 0 ? (
             <div className={emptyStyles.emptyState} style={{ minHeight: '240px' }}>

@@ -21,18 +21,6 @@ export interface CodeModeMessage {
 const ACTIVE_SESSION_KEY = 'janus_code_mode_session_id';
 const ACTIVE_SESSION_PROJECT_KEY = 'janus_code_mode_session_project';
 
-/** Bumped on createSession to invalidate in-flight ensure/load operations. */
-let sessionOpGeneration = 0;
-
-function bumpSessionOpGeneration(): number {
-  sessionOpGeneration += 1;
-  return sessionOpGeneration;
-}
-
-function isStaleSessionOp(opGen: number): boolean {
-  return opGen !== sessionOpGeneration;
-}
-
 function loadActiveSessionId(): string | null {
   try {
     return localStorage.getItem(ACTIVE_SESSION_KEY);
@@ -84,6 +72,18 @@ function toPersistMessages(messages: CodeModeMessage[]): Message[] {
     timestamp: now + i,
   }));
 }
+
+/**
+ * Atomic guard: tracks the most recently requested session ID for async ops.
+ * - createSession sets it (any in-flight loadSession will bail)
+ * - loadSession sets it before fetch, checks after fetch
+ * This replaces the broken activeSessionId comparison guard which prevented
+ * normal session switching (activeSessionId was the OLD id at check time).
+ */
+let _lastRequestedSessionId: string | null = null;
+
+/** Set by ProjectItem when user explicitly opens a session — switchToProject skips its auto-init only for the matching project */
+let _blockAutoInitForProject: string | null = null;
 
 function parseToolCallData(data: unknown): { id: string; name: string; summary?: string } | null {
   if (!data || typeof data !== 'object') return null;
@@ -241,6 +241,7 @@ interface CodeModeSessionState {
   sessionListVersion: number;
 
   createSession: (projectPath: string, name?: string) => Promise<string>;
+  blockAutoInit: () => void;
   switchToProject: (projectPath: string) => Promise<void>;
   ensureSessionForProject: (projectPath: string, preferFresh?: boolean) => Promise<void>;
   ensureSessionBeforeSend: () => Promise<boolean>;
@@ -261,6 +262,12 @@ function flushActiveToCache(
   sessionCache: Record<string, CodeModeMessage[]>,
 ): Record<string, CodeModeMessage[]> {
   if (!activeSessionId) return sessionCache;
+  // Only update sessions that already exist in the cache (were loaded from
+  // API or created via createSession).  On cold start the activeSessionId
+  // comes from localStorage but sessionCache is empty — writing an empty []
+  // there would trick the warm-cache check into thinking the session was
+  // already loaded, preventing the real API fetch.
+  if (!(activeSessionId in sessionCache)) return sessionCache;
   return { ...sessionCache, [activeSessionId]: messages };
 }
 
@@ -272,11 +279,14 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
   executingSessions: {},
   sessionListVersion: 0,
 
-  createSession: async (projectPath, name) => {
-    const opGen = bumpSessionOpGeneration();
-    const { activeSessionId, messages, sessionCache } = get();
-    const nextCache = flushActiveToCache(activeSessionId, messages, sessionCache);
+  blockAutoInit: () => {
+    const currentProject = get().activeProjectPath;
+    if (currentProject) {
+      _blockAutoInitForProject = currentProject;
+    }
+  },
 
+  createSession: async (projectPath, name) => {
     const res = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -290,26 +300,38 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
 
     const data = await res.json();
     const sessionId = data.session.sessionId as string;
-    if (isStaleSessionOp(opGen)) {
-      return sessionId;
-    }
+
+    _lastRequestedSessionId = sessionId;
 
     saveActiveSessionId(sessionId, projectPath);
-    set({
-      activeSessionId: sessionId,
-      activeProjectPath: projectPath,
-      messages: [],
-      sessionCache: { ...nextCache, [sessionId]: [] },
-      sessionListVersion: get().sessionListVersion + 1,
+    // Use functional set to flush the current session atomically with fresh state,
+    // preventing stale snapshots from overwriting concurrent cache updates.
+    set((state) => {
+      const flushed = flushActiveToCache(state.activeSessionId, state.messages, state.sessionCache);
+      return {
+        activeSessionId: sessionId,
+        activeProjectPath: projectPath,
+        messages: [],
+        sessionCache: { ...flushed, [sessionId]: [] },
+        sessionListVersion: state.sessionListVersion + 1,
+      };
     });
     return sessionId;
   },
 
   switchToProject: async (projectPath) => {
-    const { activeSessionId, activeProjectPath, messages, sessionCache, executingSessions } = get();
+    if (_blockAutoInitForProject === projectPath) {
+      _blockAutoInitForProject = null;
+      return;
+    }
+
+    const { activeSessionId, activeProjectPath } = get();
     if (activeSessionId && activeProjectPath === projectPath) {
-      const cached = sessionCache[activeSessionId];
-      if (messages.length === 0 && !cached?.length && !executingSessions[activeSessionId]) {
+      // Only reload if this session has NEVER been loaded into the cache
+      // (undefined). An empty array [] means the session is genuinely blank
+      // and should not be re-fetched.
+      const cached = get().sessionCache[activeSessionId];
+      if (cached === undefined && !get().executingSessions[activeSessionId]) {
         await get().loadSession(activeSessionId, projectPath);
       }
       return;
@@ -318,7 +340,10 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
   },
 
   ensureSessionForProject: async (projectPath, preferFresh = false) => {
-    const opGen = sessionOpGeneration;
+    const snap = get();
+    if (snap.activeSessionId && snap.activeProjectPath === projectPath) {
+      return;
+    }
 
     if (!preferFresh) {
       try {
@@ -337,8 +362,6 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
         // fall through to create
       }
     }
-
-    if (isStaleSessionOp(opGen)) return;
 
     const { activeSessionId, activeProjectPath } = get();
     if (activeSessionId && activeProjectPath === projectPath) {
@@ -363,17 +386,15 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
   },
 
   loadSession: async (sessionId, projectPath) => {
-    const opGen = sessionOpGeneration;
-    const { activeSessionId, messages, sessionCache, executingSessions } = get();
+    const { activeSessionId, messages, sessionCache } = get();
     const nextCache = flushActiveToCache(activeSessionId, messages, sessionCache);
 
     const cached = nextCache[sessionId];
-    const hasWarmCache =
-      cached !== undefined &&
-      (executingSessions[sessionId] || cached.length > 0);
 
-    if (hasWarmCache) {
-      if (isStaleSessionOp(opGen)) return;
+    // cached !== undefined means we already have this session's state in memory
+    // (including empty [] for blank sessions). Only fall through to API when
+    // the session has never been loaded into the cache at all.
+    if (cached !== undefined) {
       const resolvedProjectPath = projectPath ?? get().activeProjectPath;
       saveActiveSessionId(sessionId, resolvedProjectPath ?? null);
       set({
@@ -385,13 +406,16 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
       return;
     }
 
+    _lastRequestedSessionId = sessionId;
+
     const res = await fetch(`/api/sessions/${sessionId}/load`, { method: 'POST' });
     if (!res.ok) {
       throw new Error('Failed to load session');
     }
 
     const data = await res.json();
-    if (isStaleSessionOp(opGen)) return;
+
+    if (_lastRequestedSessionId !== sessionId) return;
 
     const loaded = toStoreMessages(data.messages || []);
     const resolvedProjectPath =
@@ -400,12 +424,14 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
       get().activeProjectPath;
 
     saveActiveSessionId(sessionId, resolvedProjectPath ?? null);
-    set({
+    // Use functional set to merge with the LATEST sessionCache, avoiding
+    // stale nextCache from overwriting concurrent updates (e.g. streaming).
+    set((state) => ({
       activeSessionId: sessionId,
       activeProjectPath: resolvedProjectPath ?? null,
       messages: loaded,
-      sessionCache: { ...nextCache, [sessionId]: loaded },
-    });
+      sessionCache: { ...state.sessionCache, [sessionId]: loaded },
+    }));
   },
 
   clearActiveSession: () => {
@@ -427,11 +453,14 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
       role: 'assistant',
       content: '',
     };
-    const nextMessages = [...get().messages, userMsg, aiMsg];
-    set((state) => ({
-      messages: nextMessages,
-      sessionCache: { ...state.sessionCache, [sessionId]: nextMessages },
-    }));
+    set((state) => {
+      const base = state.sessionCache[sessionId] ?? state.messages;
+      const nextMessages = [...base, userMsg, aiMsg];
+      return {
+        messages: nextMessages,
+        sessionCache: { ...state.sessionCache, [sessionId]: nextMessages },
+      };
+    });
   },
 
   applyStreamEvent: (sessionId, event) => {
@@ -466,10 +495,7 @@ export const useCodeModeSessionStore = create<CodeModeSessionState>((set, get) =
     const id = sessionId ?? get().activeSessionId;
     if (!id) return;
 
-    const messages =
-      id === get().activeSessionId
-        ? get().messages
-        : get().sessionCache[id] ?? [];
+    const messages = get().sessionCache[id] ?? get().messages;
     if (messages.length === 0) return;
 
     const project = useProjectStore.getState().getActiveProject();

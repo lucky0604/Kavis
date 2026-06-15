@@ -49,6 +49,7 @@ export function ProjectItem({ project, isActive, onActivate, onFocus, onRemove }
     sessionListVersion,
     createSession,
     loadSession,
+    blockAutoInit,
     deleteSession,
   } = useCodeModeSessionStore();
 
@@ -95,6 +96,7 @@ export function ProjectItem({ project, isActive, onActivate, onFocus, onRemove }
 
   const handleNewSession = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    blockAutoInit();
     onActivate();
     setCreating(true);
     setError(null);
@@ -109,6 +111,7 @@ export function ProjectItem({ project, isActive, onActivate, onFocus, onRemove }
   };
 
   const handleOpenSession = async (sessionId: string) => {
+    blockAutoInit();
     onActivate();
     setError(null);
     try {
