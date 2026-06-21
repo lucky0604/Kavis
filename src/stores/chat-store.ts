@@ -584,11 +584,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
       if (Object.keys(updates).length > 0) {
         set(updates as Partial<ChatState>);
-        // Sync back to localStorage so it stays consistent within this session
-        for (const [key, value] of Object.entries(updates)) {
-          if (typeof value === 'string') {
-            localStorage.setItem(key, value);
-          }
+        if (typeof updates.apiKey === 'string') {
+          localStorage.setItem('janus_api_key', updates.apiKey);
+        }
+        if (typeof updates.baseUrl === 'string') {
+          localStorage.setItem('janus_base_url', updates.baseUrl);
+        }
+        if (typeof updates.modelName === 'string') {
+          localStorage.setItem('janus_model', updates.modelName);
+        }
+        if (typeof updates.workspacePath === 'string') {
+          localStorage.setItem('janus_workspace', updates.workspacePath);
         }
       }
     } catch {
