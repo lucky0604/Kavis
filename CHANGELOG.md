@@ -4,7 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.2.8] - 2026-06-21
+## [0.3.0] - 2026-06-22
+
+### Added
+- Multi-CLI session management: native session ID tracking enables session resume across restarts for Claude Code, Codex, and OpenCode.
+- Automatic handoff context assembly when switching between different CLI agents, preserving conversation history.
+- Model compatibility checking warns users when a CLI-model combination is known to fail (e.g., Codex + DeepSeek).
+- Resume mode with automatic fallback: if native resume fails, the system retries in fresh mode without user intervention.
+- InspectorPane now supports three tabs (Tools, Raw Events, Context) for real-time debugging of CLI execution.
+- CLI badge on assistant messages shows which agent generated each response.
+
+### Changed
+- Subprocess runner now deduplicates stream-json output (text_final vs text_delta), preventing duplicated content.
+- Session store uses snapshot mode for Code Mode, avoiding duplicate messages on reload.
+- Non-git project support: git operations are skipped gracefully when workspace lacks a `.git` directory.
+
+### Fixed
+- Race condition in CLI session tracker: file writes now use atomic write-then-rename to prevent data loss under concurrent access.
+- Stored prompt injection risk: handoff context now includes a warning boundary to prevent adversarial instructions from replaying across agents.
+- Extracted magic numbers to named constants and migrated inline styles to CSS modules for maintainability.<｜end▁of▁thinking｜>
+
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="bash">
+<｜｜DSML｜｜parameter name="command" string="true">git add VERSION CHANGELOG.md && git commit -m "chore: bump version to 0.3.0 and update CHANGELOG"
 
 ### Added
 - Bing search as third fallback engine for `web_search` tool (works where DuckDuckGo is blocked, e.g. China). Falls through: Tavily → DuckDuckGo → Bing.
