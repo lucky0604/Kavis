@@ -70,10 +70,6 @@
         "to": "node_modules/better-sqlite3"
       },
       {
-        "from": "node_modules/@evomap",
-        "to": "node_modules/@evomap"
-      },
-      {
         "from": "node_modules/node-pty",
         "to": "node_modules/node-pty"
       }

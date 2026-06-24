@@ -148,7 +148,7 @@ describe('web_search: bingSearch error paths', () => {
     mockGet.mockImplementationOnce(() => {
       const req = { on: vi.fn(), destroy: vi.fn() };
       setImmediate(() => {
-        const errorCb = req.on.mock.calls.find(([e]: [string]) => e === 'error')?.[1];
+        const errorCb = req.on.mock.calls.find((call) => call[0] === 'error')?.[1];
         if (errorCb) errorCb(new Error('ENOTFOUND'));
       });
       return req;
@@ -162,7 +162,7 @@ describe('web_search: bingSearch error paths', () => {
     mockGet.mockImplementationOnce(() => {
       const req = { on: vi.fn(), destroy: vi.fn() };
       setImmediate(() => {
-        const timeoutCb = req.on.mock.calls.find(([e]: [string]) => e === 'timeout')?.[1];
+        const timeoutCb = req.on.mock.calls.find((call) => call[0] === 'timeout')?.[1];
         if (timeoutCb) timeoutCb();
       });
       return req;
