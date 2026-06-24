@@ -1,12 +1,47 @@
+/* ---- Root wrapper (always includes title bar) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+/* ---- Title Bar (drag region + traffic-light clearance) ---- */
+.titleBar {
+  height: 38px;
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  /* The entire title bar is a drag region so users can move the window */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titleBarBrand {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  /* Brand text must be non-draggable so it remains selectable */
+  -webkit-app-region: no-drag;
+}
+
+/* ---- Content area below title bar ---- */
 .layout {
   display: flex;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   background: var(--color-bg-primary);
 }
 
 .sceneContainer {
   flex: 1;
   min-width: 0;
-  height: 100vh;
   overflow: hidden;
 }

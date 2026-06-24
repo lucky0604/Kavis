@@ -89,10 +89,8 @@ export function NavBar() {
 
   return (
     <nav className={styles.navbar}>
-      {/* Brand */}
-      <div className={styles.header}>
-        <span className={styles.brand}>Janus</span>
-      </div>
+      {/* Header spacer (brand moved to global title bar) */}
+      <div className={styles.header} />
 
       {/* New Chat */}
       <div className={styles.newChatSection}>
