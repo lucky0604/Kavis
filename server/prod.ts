@@ -278,6 +278,22 @@ async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
     });
   });
 
+  /**
+   * SSE comment-line heartbeat. Sent every 15s while streaming so any intermediary
+   * (nginx idle_timeout default 60s, corporate proxies, mobile NAT) keeps the
+   * connection alive even during long tool-loop gaps when no data flows.
+   * Lines starting with ':' are SSE comments — browsers/EventSource silently ignore them.
+   */
+  const heartbeat = setInterval(() => {
+    if (clientClosed) return;
+    try {
+      res.write(': ping\n\n');
+    } catch (err) {
+      clientClosed = true;
+      console.error('[prod-sse] heartbeat write failed:', err instanceof Error ? err.message : err);
+    }
+  }, 15_000);
+
   try {
     const stream = await handleChatStream(
       {
@@ -315,6 +331,7 @@ async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
       }
     }
   } finally {
+    clearInterval(heartbeat);
     if (!clientClosed) {
       try {
         res.write('data: [DONE]\n\n');

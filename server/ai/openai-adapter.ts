@@ -1,6 +1,8 @@
 import type { AIAdapter, StreamEvent } from './adapter';
 import type { Message, ToolDefinition } from '../../shared/types';
 import OpenAI from 'openai';
+import https from 'https';
+import http from 'http';
 
 export class AuthError extends Error {
   constructor(message: string) {
@@ -71,6 +73,42 @@ export function sanitizeBaseUrl(url: string | undefined): string | undefined {
 export class OpenAIAdapter implements AIAdapter {
   private client: OpenAI;
   private baseUrl: string | undefined;
+  private static sharedHttpsAgent: https.Agent | undefined;
+  private static sharedHttpAgent: http.Agent | undefined;
+
+  /**
+   * Shared per-protocol keep-alive agents. Reused across all adapter instances so
+   * sockets stay warm between requests — crucial when the same client config issues
+   * a long chain of tool-loop requests (avoids re-handshake stalls that surface as
+   * 'Premature close' in packaged builds).
+   */
+  private static getAgent(targetUrl: string | undefined): https.Agent | http.Agent {
+    const isHttps = !targetUrl || targetUrl.startsWith('https:');
+    if (isHttps) {
+      if (!OpenAIAdapter.sharedHttpsAgent) {
+        OpenAIAdapter.sharedHttpsAgent = new https.Agent({
+          keepAlive: true,
+          keepAliveMsecs: 30_000,
+          maxSockets: 64,
+          maxFreeSockets: 16,
+          timeout: 600_000,
+          scheduling: 'lifo',
+        });
+      }
+      return OpenAIAdapter.sharedHttpsAgent;
+    }
+    if (!OpenAIAdapter.sharedHttpAgent) {
+      OpenAIAdapter.sharedHttpAgent = new http.Agent({
+        keepAlive: true,
+        keepAliveMsecs: 30_000,
+        maxSockets: 64,
+        maxFreeSockets: 16,
+        timeout: 600_000,
+        scheduling: 'lifo',
+      });
+    }
+    return OpenAIAdapter.sharedHttpAgent;
+  }
 
   constructor(apiKey: string, baseUrl?: string) {
     const trimmedBase = baseUrl?.trim() || undefined;
@@ -78,6 +116,9 @@ export class OpenAIAdapter implements AIAdapter {
     this.client = new OpenAI({
       apiKey,
       baseURL: this.baseUrl,
+      timeout: 600_000,
+      maxRetries: 2,
+      httpAgent: OpenAIAdapter.getAgent(this.baseUrl),
     });
   }
 
