@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Message, ToolCall, ToolDefinition } from '../../shared/types';
-import { OpenAIAdapter } from '../ai/openai-adapter';
+import { OpenAIAdapter, AuthError, RateLimitError, UpstreamStreamError } from '../ai/openai-adapter';
 import type { StreamEvent } from '../ai/adapter';
 import { toolRegistry } from '../tools/registry';
 import { LoopDetector } from './loop-detector';
@@ -186,10 +186,55 @@ export async function* executeDialogTurn(
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'CancelledError') {
-      yield { type: 'done', data: { reason: 'cancelled', messages: messagesArr } };
-      return;
+        yield { type: 'done', data: { reason: 'cancelled', messages: messagesArr } };
+        return;
       }
-      yield { type: 'error', data: { message: err instanceof Error ? err.message : 'AI call failed' } };
+      if (err instanceof Error && err.name === 'AbortError') {
+        yield { type: 'done', data: { reason: 'cancelled', messages: messagesArr } };
+        return;
+      }
+
+      const errorData: {
+        message: string;
+        kind: 'upstream' | 'auth' | 'rate_limit' | 'cancelled' | 'unknown';
+        status?: number;
+        baseUrl?: string;
+        model?: string;
+        code?: string;
+        stack?: string;
+      } = {
+        message: err instanceof Error ? err.message : 'AI call failed',
+        kind: 'unknown',
+        model: effectiveModel,
+      };
+
+      if (err instanceof UpstreamStreamError) {
+        errorData.kind = 'upstream';
+        errorData.status = err.status;
+        errorData.baseUrl = err.baseUrl;
+        errorData.model = err.model;
+        errorData.code = err.code;
+      } else if (err instanceof AuthError) {
+        errorData.kind = 'auth';
+      } else if (err instanceof RateLimitError) {
+        errorData.kind = 'rate_limit';
+      }
+
+      if (err instanceof Error && err.stack) {
+        errorData.stack = err.stack.split('\n').slice(0, 3).join('\n');
+      }
+
+      console.error('[agent-loop] stream error:', {
+        kind: errorData.kind,
+        status: errorData.status,
+        baseUrl: errorData.baseUrl,
+        model: errorData.model,
+        code: errorData.code,
+        message: errorData.message,
+        cause: err instanceof UpstreamStreamError ? err.cause : undefined,
+      });
+
+      yield { type: 'error', data: errorData };
       return;
     }
 

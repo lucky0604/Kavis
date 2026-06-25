@@ -256,13 +256,26 @@ async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
   const agentId = (body.agentId as string) || undefined;
 
   const abortController = new AbortController();
-  req.on('close', () => abortController.abort());
+  let clientClosed = false;
+  req.on('close', () => {
+    clientClosed = true;
+    abortController.abort();
+  });
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',
+  });
+
+  res.on('error', (err) => {
+    clientClosed = true;
+    console.error('[prod-sse] response stream error:', {
+      message: err.message,
+      code: (err as NodeJS.ErrnoException).code,
+      name: err.name,
+    });
   });
 
   try {
@@ -281,18 +294,35 @@ async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      if (clientClosed) break;
       res.write(value);
     }
   } catch (err) {
     const encoder = new TextEncoder();
-    res.write(
-      encoder.encode(
-        `data: ${JSON.stringify({ type: 'error', data: { message: err instanceof Error ? err.message : 'Stream error' } })}\n\n`
-      )
-    );
+    const message = err instanceof Error ? err.message : 'Stream error';
+    const code = err instanceof Error ? (err as NodeJS.ErrnoException).code : undefined;
+    const name = err instanceof Error ? err.name : undefined;
+    console.error('[prod-sse] handler error:', { message, code, name });
+    if (!clientClosed) {
+      try {
+        res.write(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: 'error', data: { message, kind: 'unknown', code } })}\n\n`
+          )
+        );
+      } catch {
+        // socket already closed — nothing to flush
+      }
+    }
   } finally {
-    res.write('data: [DONE]\n\n');
-    res.end();
+    if (!clientClosed) {
+      try {
+        res.write('data: [DONE]\n\n');
+      } catch {
+        // socket already closed
+      }
+    }
+    try { res.end(); } catch { /* already ended */ }
   }
 }
 

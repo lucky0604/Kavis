@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Message, ToolMeta, StreamEvent, SSEToolCall, SSEToolResult, SSEMemoryRecall, SSESkillReview, SSEEvolutionEvent } from '../../shared/types';
+import type { Message, ToolMeta, StreamEvent, SSEToolCall, SSEToolResult, SSEMemoryRecall, SSESkillReview, SSEEvolutionEvent, StreamErrorEventData } from '../../shared/types';
 import { useAgentStore, useSessionStore } from './app-stores';
 
 interface ChatState {
@@ -8,6 +8,7 @@ interface ChatState {
   isConnecting: boolean;
   connectionError: boolean;
   errorMessage: string | null;
+  lastError: StreamErrorEventData | null;
   apiKey: string;
   baseUrl: string;
   modelName: string;
@@ -112,6 +113,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isConnecting: false,
   connectionError: false,
   errorMessage: null,
+  lastError: null,
   apiKey: localStorage.getItem('janus_api_key') || '',
   baseUrl: localStorage.getItem('janus_base_url') || 'https://api.openai.com/v1',
   modelName: localStorage.getItem('janus_model') || 'gpt-4o',
@@ -139,6 +141,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isConnecting: true,
       connectionError: false,
       errorMessage: null,
+      lastError: null,
     });
 
     const requestMessages = [...messages, userMsg];
@@ -414,9 +417,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 break;
               }
               case 'error': {
+                const errData = event.data as StreamErrorEventData;
+                const parts: string[] = [];
+                if (errData.kind === 'upstream') {
+                  const tag = [
+                    errData.status ? `HTTP ${errData.status}` : null,
+                    errData.code ? errData.code : null,
+                    errData.model,
+                  ].filter(Boolean).join(' · ');
+                  parts.push(`[Upstream${tag ? ' ' + tag : ''}]`);
+                  if (errData.baseUrl) parts.push(`@ ${errData.baseUrl}`);
+                } else if (errData.kind === 'auth') {
+                  parts.push('[Auth]');
+                } else if (errData.kind === 'rate_limit') {
+                  parts.push('[Rate limit]');
+                }
+                parts.push(errData.message || 'Unknown error');
                 set({
                   isStreaming: false,
-                  errorMessage: (event.data as { message: string }).message || 'Unknown error',
+                  errorMessage: parts.join(' '),
+                  lastError: errData,
                 });
                 return;
               }
@@ -437,16 +457,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
         set({ messages: [...msgs], isStreaming: false, isConnecting: false });
       } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        const message = err.message || 'Connection failed';
         set({
           isStreaming: false,
           isConnecting: false,
           connectionError: true,
+          errorMessage: `[Network] ${message}`,
+          lastError: { message, kind: 'unknown', code: 'NETWORK_ERROR' },
         });
       } else {
+        const message = err instanceof Error ? err.message : 'Connection failed';
+        const code = err instanceof Error ? (err as { code?: string }).code : undefined;
         set({
           isStreaming: false,
           isConnecting: false,
-          errorMessage: err instanceof Error ? err.message : 'Connection failed',
+          errorMessage: `[Client] ${message}`,
+          lastError: { message, kind: 'unknown', code },
         });
       }
     }
@@ -483,7 +509,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ workspacePath: path });
   },
 
-  clearError: () => set({ errorMessage: null, connectionError: false }),
+  clearError: () => set({ errorMessage: null, connectionError: false, lastError: null }),
 
   addMessage: (msg: Message) => {
     set({ messages: [...get().messages, msg] });

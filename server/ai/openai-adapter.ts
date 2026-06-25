@@ -23,14 +23,61 @@ export class ProviderError extends Error {
   }
 }
 
+export interface UpstreamErrorContext {
+  baseUrl?: string;
+  model: string;
+  status?: number;
+  code?: string;
+  cause?: unknown;
+}
+
+export class UpstreamStreamError extends Error {
+  readonly baseUrl?: string;
+  readonly model: string;
+  readonly status?: number;
+  readonly code?: string;
+  readonly cause?: unknown;
+
+  constructor(message: string, ctx: UpstreamErrorContext) {
+    super(message);
+    this.name = 'UpstreamStreamError';
+    this.baseUrl = ctx.baseUrl;
+    this.model = ctx.model;
+    this.status = ctx.status;
+    this.code = ctx.code;
+    this.cause = ctx.cause;
+  }
+}
+
+/**
+ * Strip credentials (user:pass@) from a URL so it's safe to log or send to the client.
+ * Falls back to the raw string if parsing fails — never re-emits credentials on error.
+ */
+export function sanitizeBaseUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.username || parsed.password) {
+      parsed.username = '';
+      parsed.password = '';
+      return parsed.toString();
+    }
+    return url;
+  } catch {
+    return url.replace(/\/\/[^@/]+@/, '//');
+  }
+}
+
 export class OpenAIAdapter implements AIAdapter {
   private client: OpenAI;
+  private baseUrl: string | undefined;
 
   constructor(apiKey: string, baseUrl?: string) {
     const trimmedBase = baseUrl?.trim() || undefined;
+    this.baseUrl = trimmedBase || process.env.OPENAI_BASE_URL;
     this.client = new OpenAI({
       apiKey,
-      baseURL: trimmedBase || process.env.OPENAI_BASE_URL,
+      baseURL: this.baseUrl,
     });
   }
 
@@ -40,10 +87,12 @@ export class OpenAIAdapter implements AIAdapter {
     modelName?: string,
     signal?: AbortSignal
   ): AsyncGenerator<StreamEvent> {
+    const effectiveModel = modelName || process.env.OPENAI_MODEL || 'gpt-4o';
+    const sanitizedBase = sanitizeBaseUrl(this.baseUrl);
     try {
       const stream = await this.client.chat.completions.create(
         {
-          model: modelName || process.env.OPENAI_MODEL || 'gpt-4o',
+          model: effectiveModel,
           messages: messages.map((m) => ({
             role: m.role as 'user' | 'assistant' | 'system',
             content: m.content,
@@ -123,23 +172,42 @@ export class OpenAIAdapter implements AIAdapter {
         }
       }
     } catch (err: unknown) {
-      if (err instanceof OpenAI.APIError) {
-        switch (err.status) {
-          case 401:
-            throw new AuthError(err.message);
-          case 429:
-            throw new RateLimitError(err.message);
-          default:
-            if (err.status && err.status >= 500) {
-              throw new ProviderError(err.message);
-            }
-            throw err;
-        }
-      }
+      // AbortError propagates up unchanged so callers can distinguish user cancel from upstream failure
       if (err instanceof DOMException && err.name === 'AbortError') {
         throw err;
       }
-      throw err;
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw err;
+      }
+
+      if (err instanceof OpenAI.APIError) {
+        const ctxMsg = `[${sanitizedBase || 'default'}] ${err.message}`;
+        if (err.status === 401) throw new AuthError(ctxMsg);
+        if (err.status === 429) throw new RateLimitError(ctxMsg);
+        throw new UpstreamStreamError(
+          `Provider HTTP ${err.status ?? '?'}: ${err.message}`,
+          {
+            baseUrl: sanitizedBase,
+            model: effectiveModel,
+            status: err.status,
+            code: err.code ?? undefined,
+            cause: err,
+          },
+        );
+      }
+
+      const cause = err instanceof Error ? err : new Error(String(err));
+      const code = (cause as NodeJS.ErrnoException).code;
+      throw new UpstreamStreamError(
+        `Upstream stream broken: ${cause.message} (model=${effectiveModel}, baseUrl=${sanitizedBase || 'default'})`,
+        {
+          baseUrl: sanitizedBase,
+          model: effectiveModel,
+          status: undefined,
+          code,
+          cause: err,
+        },
+      );
     }
   }
 }

@@ -250,9 +250,13 @@ export async function handleChatStream(
           push({ type: 'done', data: { reason: 'complete' } });
         }
       } catch (err) {
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        const stack = err instanceof Error && err.stack ? err.stack.split('\n').slice(0, 3).join('\n') : undefined;
+        const code = err instanceof Error ? (err as NodeJS.ErrnoException).code : undefined;
+        console.error('[chat-route] handler error:', { message, code, stack });
         push({
           type: 'error',
-          data: { message: err instanceof Error ? err.message : 'Internal server error' },
+          data: { message, kind: 'unknown', code, stack },
         });
       } finally {
         controller.close();

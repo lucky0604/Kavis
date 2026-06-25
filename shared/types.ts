@@ -105,8 +105,24 @@ export type StreamEvent =
   | { type: 'evolution_event'; data: SSEEvolutionEvent }
   | { type: 'approval_required'; data: SSEApprovalRequired }
   | { type: 'approval_resolved'; data: SSEApprovalResolved }
-  | { type: 'error'; data: { message: string } }
+  | { type: 'error'; data: StreamErrorEventData }
   | { type: 'done'; data: SSEDone & { messages?: Message[] } };
+
+/**
+ * Structured error payload for stream 'error' events.
+ * Cross-cuts server agent-loop, prod.ts, and client chat-store — keep shape stable.
+ */
+export interface StreamErrorEventData {
+  message: string;
+  kind?: 'upstream' | 'auth' | 'rate_limit' | 'cancelled' | 'unknown';
+  status?: number;
+  /** Sanitized base URL — credentials MUST be stripped before assignment. */
+  baseUrl?: string;
+  model?: string;
+  code?: string;
+  /** Truncated to first 3 lines for diagnostic display. */
+  stack?: string;
+}
 
 // ---- Agent System ----
 export type CapabilityCategory = 'coding' | 'docs' | 'analysis' | 'testing' | 'file_ops' | 'ops';
