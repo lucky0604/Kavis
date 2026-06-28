@@ -3,11 +3,12 @@ import type { HookType, HookContext, HookResult, HookFn } from './types';
 const HOOK_TIMEOUT_MS = 15_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Hook timed out after ${ms}ms`)), ms),
-    ),
+    promise.finally(() => clearTimeout(timer)),
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`Hook timed out after ${ms}ms`)), ms);
+    }),
   ]);
 }
 
