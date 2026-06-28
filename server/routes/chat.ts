@@ -78,7 +78,7 @@ export function resolveModeRole(
 
   let tools = allTools.filter((t) => modeDef.tools.includes(t.name) || t.name === 'patch_file');
 
-  if (resolvedMode === 'code' && resolvedRole === 'custom') {
+  if (resolvedMode === 'code' && resolvedRole === 'kavis-code') {
     const customWhitelist = new Set(['read_file', 'patch_file', 'shell_exec']);
     tools = tools.filter((t) => customWhitelist.has(t.name));
   } else {
@@ -217,7 +217,7 @@ export async function handleChatStream(
 
         let doneEmitted = false;
 
-        const turnGenerator = mode === 'code' && role === 'custom'
+        const turnGenerator = mode === 'code' && role === 'kavis-code'
           ? executeCustomAgentTurn(messages, toolDefs, config, signal)
           : executeDialogTurn(messages, toolDefs, config, signal);
 

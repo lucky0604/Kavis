@@ -71,8 +71,8 @@ export const AGENT_ROLES: RoleDefinition[] = [
     description: 'Systematic debugging — investigate, diagnose, and fix issues',
   },
   {
-    id: 'custom',
-    name: 'Custom',
+    id: 'kavis-code',
+    name: 'Kavis Code',
     description: '基于 Search-Replace 差异块协议的原生 Coding Agent MVP',
   },
 ];

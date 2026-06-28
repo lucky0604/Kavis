@@ -73,14 +73,14 @@ describe('Agent Registry — Mode + Role Architecture', () => {
     expect(agents.length).toBe(6);
   });
 
-  it('should have work, code/agentic, code/plan, code/ask, code/debug, code/custom', () => {
+  it('should have work, code/agentic, code/plan, code/ask, code/debug, code/kavis-code', () => {
     const ids = agentRegistry.list().map((a) => a.id);
     expect(ids).toContain('work');
     expect(ids).toContain('code/agentic');
     expect(ids).toContain('code/plan');
     expect(ids).toContain('code/ask');
     expect(ids).toContain('code/debug');
-    expect(ids).toContain('code/custom');
+    expect(ids).toContain('code/kavis-code');
   });
 
   it('all 5 agents should be active', () => {

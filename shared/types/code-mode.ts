@@ -1,5 +1,5 @@
 // ---- Code Mode: External CLI Relay ----
-export type CliToolId = 'claudecode' | 'opencode' | 'codex';
+export type CliToolId = 'kavis-code' | 'claudecode' | 'opencode' | 'codex';
 
 export interface HandoffTodo {
   text: string;

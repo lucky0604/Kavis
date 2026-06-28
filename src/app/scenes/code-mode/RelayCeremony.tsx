@@ -21,7 +21,13 @@ interface Props {
 }
 
 function cliName(id: CliToolId): string {
-  return id === 'claudecode' ? 'Claude' : 'OpenCode';
+  switch (id) {
+    case 'kavis-code': return 'Kavis Code';
+    case 'claudecode': return 'Claude';
+    case 'codex': return 'Codex';
+    case 'opencode': return 'OpenCode';
+    default: return id;
+  }
 }
 
 export function RelayCeremony({

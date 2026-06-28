@@ -21,8 +21,8 @@ vi.mock('../../shared/ai/openai-adapter', () => {
   };
 });
 
-describe('Custom Coding Agent MVP Integration', () => {
-  const tempDir = path.join(process.cwd(), 'temp-custom-agent-test-' + crypto.randomUUID());
+describe('Kavis Code Agent MVP Integration', () => {
+  const tempDir = path.join(process.cwd(), 'temp-kavis-code-test-' + crypto.randomUUID());
 
   beforeEach(() => {
     fs.mkdirSync(tempDir, { recursive: true });
@@ -33,10 +33,10 @@ describe('Custom Coding Agent MVP Integration', () => {
     vi.clearAllMocks();
   });
 
-  it('should resolve correct tools and system prompt for custom role', () => {
-    const { resolvedMode, resolvedRole, tools } = resolveModeRole('code', 'custom');
+  it('should resolve correct tools and system prompt for kavis-code role', () => {
+    const { resolvedMode, resolvedRole, tools } = resolveModeRole('code', 'kavis-code');
     expect(resolvedMode).toBe('code');
-    expect(resolvedRole).toBe('custom');
+    expect(resolvedRole).toBe('kavis-code');
 
     const toolNames = tools.map((t) => t.name);
     // Custom role should only have read_file, patch_file, shell_exec

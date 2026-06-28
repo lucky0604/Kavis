@@ -7,7 +7,11 @@ import { saveCliSession, markTurnCompleted, markTurnDirty } from './cli-session-
 import { assembleHandoffContext, writeWorkspaceContextFile } from './context-assembler';
 import { determineResumeMode, buildCliArgs, type CliInvocationContext } from './stream-format';
 import { SSEWriter } from './stream-sse';
-import type { CliToolId } from '../../../shared/types';
+import type { CliToolId, Message } from '../../../shared/types';
+import { loadSession, saveSession } from '../../shared/persistence/session-store';
+import { executeCustomAgentTurn } from '../native/index';
+import { resolveModeRole } from '../../routes/chat';
+import { agentRegistry } from '../../shared/agents/registry';
 
 // Re-export public types so existing consumers don't break
 export type { ResumeMode, CliInvocationContext } from './stream-format';
@@ -53,6 +57,85 @@ export function handleStreamRoutes(
         if (!fs.existsSync(resolvedWorkspace) || !fs.statSync(resolvedWorkspace).isDirectory()) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: `Invalid workspace directory: ${resolvedWorkspace}` }));
+          return;
+        }
+
+        if (cliId === 'kavis-code') {
+          const apiKey = (req.headers['x-api-key'] as string) || process.env.OPENAI_API_KEY || '';
+          if (!apiKey) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'missing_api_key' }));
+            return;
+          }
+
+          const sse = new SSEWriter(res, `native-${Date.now()}`, resolvedWorkspace);
+
+          // Always record CLI usage so getLastUsedCli works
+          if (sessionId) {
+            saveCliSession(sessionId, 'kavis-code', `__janus_${Date.now()}`);
+          }
+
+          loadSession(sessionId || '').then(async (sessionData) => {
+            const history = sessionData ? sessionData.messages : [];
+            const messages = [
+              ...history,
+              { id: `u-${Date.now()}`, role: 'user' as const, content: prompt, timestamp: Date.now() }
+            ];
+
+            const resolved = resolveModeRole('code', 'kavis-code');
+            const tools = resolved.tools;
+            const systemPrompt = agentRegistry.get('code/kavis-code')?.systemPrompt || '';
+
+            const toolDefs = tools.map((t) => ({
+              name: t.name,
+              description: t.description,
+              parameters: t.parameters,
+            }));
+
+            const config = {
+              maxRounds: 10,
+              workspacePath: resolvedWorkspace,
+              sessionId: sessionId || `native-${Date.now()}`,
+              apiKey,
+              baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+              modelName: model || process.env.OPENAI_MODEL || 'gpt-4o',
+              systemPrompt,
+            };
+
+            const abortController = new AbortController();
+            req.on('close', () => {
+              abortController.abort();
+            });
+
+            try {
+              const turnGenerator = executeCustomAgentTurn(messages, toolDefs, config, abortController.signal);
+              for await (const event of turnGenerator) {
+                if (abortController.signal.aborted) {
+                  sse.writeDone(null);
+                  break;
+                }
+                if (event.type === 'done') {
+                  const doneData = event.data as { reason: string; messages?: Message[] };
+                  if (doneData.messages && sessionId) {
+                    await saveSession(sessionId, doneData.messages, 'code/kavis-code', resolvedWorkspace);
+                  }
+                  sse.writeDone(0);
+                } else {
+                  sse.writeEvent(event as any);
+                }
+              }
+              if (sessionId) {
+                markTurnCompleted(sessionId, 'kavis-code');
+              }
+            } catch (err) {
+              sse.writeEvent({ type: 'error', data: { message: String(err) } } as any);
+            } finally {
+              sse.writeDone(0);
+            }
+          }).catch((err) => {
+            sse.writeEvent({ type: 'error', data: { message: `Failed to load session: ${String(err)}` } });
+            sse.writeDone(1);
+          });
           return;
         }
 

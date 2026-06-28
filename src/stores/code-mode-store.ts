@@ -15,7 +15,7 @@ interface CodeModeState {
 }
 
 export const useCodeModeStore = create<CodeModeState>((set) => ({
-  activeCli: 'claudecode',
+  activeCli: 'kavis-code',
   activeModel: '',
   isRelaying: false,
   isExecuting: false,

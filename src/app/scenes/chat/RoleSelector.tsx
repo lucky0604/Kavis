@@ -8,7 +8,7 @@ const ROLE_LABELS: Record<AgentRoleId, string> = {
   plan: 'Plan',
   ask: 'Ask',
   debug: 'Debug',
-  custom: 'Custom',
+  'kavis-code': 'Kavis Code',
 };
 
 export function RoleSelector() {

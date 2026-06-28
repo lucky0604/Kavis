@@ -105,6 +105,7 @@ export function generateHandoffMarkdown(ctx: TranslatedContext): string {
 
 function cliDisplayName(cli: CliToolId): string {
   switch (cli) {
+    case 'kavis-code': return 'Kavis Code';
     case 'claudecode': return 'Claude Code';
     case 'opencode': return 'OpenCode';
     default: return cli;

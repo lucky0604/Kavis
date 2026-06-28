@@ -19,7 +19,7 @@ export interface AgentDefinition {
 
 // ---- Operating Mode + Agent Role (two-dimensional architecture) ----
 export type OperatingModeId = 'work' | 'code';
-export type AgentRoleId = 'agentic' | 'plan' | 'ask' | 'debug' | 'custom';
+export type AgentRoleId = 'agentic' | 'plan' | 'ask' | 'debug' | 'kavis-code';
 
 export interface ModeCapability {
   category: string;

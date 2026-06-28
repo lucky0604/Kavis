@@ -14,6 +14,17 @@ const MODEL_CACHE_TTL = 5 * 60 * 1000;
 
 const CLI_CONFIGS: CliToolConfig[] = [
   {
+    id: 'kavis-code',
+    binaryName: 'kavis-code',
+    displayName: 'Kavis Code',
+    defaultModels: ['gpt-4o', 'claude-3-5-sonnet', 'gpt-4o-mini'],
+    capabilities: {
+      streamJson: true,
+      ptyRequired: false,
+      supportsModels: true,
+    },
+  },
+  {
     id: 'claudecode',
     binaryName: 'claude',
     displayName: 'Claude Code',
@@ -139,6 +150,16 @@ export function detectCli(id: CliToolId): CliDetectionResult {
   const config = CLI_CONFIGS.find((c) => c.id === id);
   if (!config) {
     return { id, displayName: id, available: false, binaryPath: null, models: [] };
+  }
+  if (id === 'kavis-code') {
+    return {
+      id: config.id,
+      displayName: config.displayName,
+      available: true,
+      binaryPath: 'built-in',
+      models: config.defaultModels,
+      defaultModel: config.defaultModels[0],
+    };
   }
   const binaryPath = whichBinary(config.binaryName);
   const available = binaryPath !== null;
