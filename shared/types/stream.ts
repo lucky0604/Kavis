@@ -9,6 +9,7 @@ export type StreamEventType =
   | 'evolution_event'
   | 'approval_required'
   | 'approval_resolved'
+  | 'hook_event'
   | 'error'
   | 'done';
 
@@ -55,11 +56,19 @@ export interface SSEApprovalRequired {
   path: string;
   contentPreview: string;
   bytes: number;
+  unifiedDiff?: string;
 }
 
 export interface SSEApprovalResolved {
   id: string;
   approved: boolean;
+}
+
+export interface SSEHookEvent {
+  hookType: string;
+  status: 'start' | 'continue' | 'rewrite' | 'abort';
+  round?: number;
+  detail?: string;
 }
 
 // ---- Stream Error ----
@@ -86,5 +95,6 @@ export type StreamEvent =
   | { type: 'evolution_event'; data: SSEEvolutionEvent }
   | { type: 'approval_required'; data: SSEApprovalRequired }
   | { type: 'approval_resolved'; data: SSEApprovalResolved }
+  | { type: 'hook_event'; data: SSEHookEvent }
   | { type: 'error'; data: StreamErrorEventData }
   | { type: 'done'; data: SSEDone & { messages?: Message[] } };

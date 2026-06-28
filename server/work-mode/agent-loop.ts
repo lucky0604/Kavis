@@ -44,6 +44,10 @@ export interface ExecutionConfig {
   baseUrl?: string;
   modelName?: string;
   systemPrompt?: string;
+  /** Current subagent nesting depth (0 = root agent). */
+  subagentDepth?: number;
+  /** Maximum allowed subagent recursion depth. Default: 2. */
+  maxSubagentDepth?: number;
 }
 
 /**

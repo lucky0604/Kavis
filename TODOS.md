@@ -67,13 +67,34 @@
 
 ---
 
-## 7. ⏳ 前端 Unified Diff 预览 (Unified Diff Preview) [待开始]
+## 7. ✅ 前端 Unified Diff 预览 (Unified Diff Preview) [已完成]
 
-> **计划于:** Phase B 之后
+> **实现于:** `shared/utils/unified-diff.ts` + `src/components/UnifiedDiffView.tsx`
+>
+> - 服务端 `tool-dispatcher` 为 `write_file` / `patch_file` 生成 Git-style unified diff
+> - Work Mode `EventCards.tsx` 与 Code Mode `InspectorPane` 审批卡片均使用 `UnifiedDiffView`
+> - Code Mode Inspector 已接入 `approval_required` / `approval_resolved` SSE 事件
 
-- **What**: 在审批卡片中展示高亮的 Git-style 差异对比，而非纯文本预览。
-- **Why**: 提升用户在审批 `patch_file` 时的体验，能够极其直观地看清每一行代码的增删改动，防止误操作。
-- **Pros**: 极佳的开发者体验 (DX)，建立更强的 AI 信任感。
-- **Cons**: 需要在前端引入 diff 解析和高亮渲染组件，增加前端包体积。
+---
+
+## 8. ✅ Code Mode 子代理系统 (Subagents) [已完成]
+
+- **What**: `TaskManager` + `delegate_task` 工具，子 Agent 递归调用 `query()`，`maxSubagentDepth` 默认 2。
+- **Files**: `tasks/task-manager.ts`, `tools/delegate-task.ts`, `types.ts`
+
+---
+
+## 9. ✅ 前端 Hooks 可视化面板 (Frontend Hooks Panel) [已完成]
+
+- **What**: SSE `hook_event` 事件 + `HookEventBlock` 内联展示 Hook 生命周期。
+- **Files**: `shared/types/stream.ts`, `query-helpers.ts`, `CodeModeMessageBlocks.tsx`
+
+---
+
+## 10. ✅ AGENTS.md / CLAUDE.md 动态热重载 (Project Rules Hot-Reload) [已完成]
+
+- **What**: 每轮循环 `RulesWatcher` 检测 mtime，自动 upsert 项目规范 system message。
+- **Files**: `memory/rules-watcher.ts`, `memory/agents-md-reader.ts` (`upsertProjectRulesMessage`)
+
 
 

@@ -25,6 +25,14 @@ function registerMockTools() {
       });
     }
   }
+  if (!toolRegistry.get('patch_file')) {
+    toolRegistry.register({
+      name: 'patch_file',
+      description: 'Mock patch_file',
+      parameters: { type: 'object' as const, properties: {} },
+      execute: async () => ({ success: true, data: 'mock' }),
+    });
+  }
 }
 
 function registerTestAgents() {
@@ -124,6 +132,16 @@ describe('Chat Route — Mode + Role Tool Filtering', () => {
     const result = resolveAgentTools('work');
     expect(result.resolvedAgentId).toBe('work');
     expect(result.warnings).toHaveLength(0);
+  });
+
+  it('resolveModeRole: kavis-code role uses restricted native tool set', () => {
+    const result = resolveModeRole('code', 'kavis-code');
+    const names = result.tools.map((t) => t.name);
+    expect(names).toEqual(
+      expect.arrayContaining(['read_file', 'patch_file', 'write_file', 'shell_exec', 'git_status', 'git_diff']),
+    );
+    expect(names).not.toContain('web_search');
+    expect(names).not.toContain('web_fetch');
   });
 
   it('resolveAgentTools: legacy agentId undefined falls to work', () => {

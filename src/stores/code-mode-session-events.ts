@@ -87,6 +87,31 @@ export function applyEventToMessages(
     ];
   }
 
+  if (event.type === 'hook_event') {
+    const data = event.data as {
+      hookType?: string;
+      status?: string;
+      round?: number;
+      detail?: string;
+    };
+    if (!data?.hookType || !data?.status) return messages;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant') return messages;
+    const hookEvents = last.hookEvents ?? [];
+    const status = data.status as 'start' | 'continue' | 'rewrite' | 'abort';
+    const entry = {
+      id: crypto.randomUUID(),
+      hookType: data.hookType,
+      status,
+      round: data.round,
+      detail: data.detail,
+    };
+    return [
+      ...messages.slice(0, -1),
+      { ...last, hookEvents: [...hookEvents, entry] },
+    ];
+  }
+
   if (event.type === 'session_meta') {
     const data = event.data as { cliSessionId?: string } | undefined;
     if (data?.cliSessionId) {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { MemoryRecallMeta, SkillReviewMeta, EvolutionEventMeta, ToolApprovalMeta, EventMeta } from '@shared/types';
 import { useChatStore } from '../../../stores/chat-store';
+import { UnifiedDiffViewFromPreview } from '../../../components/UnifiedDiffView';
 import styles from './MessageList.module.css';
 
 // ---- Memory Recall Card ----
@@ -84,10 +85,11 @@ function ToolApprovalCard({ meta }: { meta: ToolApprovalMeta }) {
         <div className={styles.approvalPath}>{meta.path}</div>
         <div className={styles.approvalMeta}>{meta.bytes.toLocaleString()} bytes</div>
         {meta.contentPreview && (
-          <pre className={styles.approvalPreview}>
-            {meta.contentPreview.slice(0, 600)}
-            {meta.contentPreview.length > 600 ? '\n…' : ''}
-          </pre>
+          <UnifiedDiffViewFromPreview
+            unifiedDiff={meta.unifiedDiff}
+            contentPreview={meta.contentPreview}
+            path={meta.path}
+          />
         )}
       </div>
       {isPending && (

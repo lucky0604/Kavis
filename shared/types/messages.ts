@@ -58,6 +58,7 @@ export interface ToolApprovalMeta {
   toolName: string;
   path: string;
   contentPreview: string;
+  unifiedDiff?: string;
   bytes: number;
   status: 'pending' | 'approved' | 'denied' | 'timeout';
 }

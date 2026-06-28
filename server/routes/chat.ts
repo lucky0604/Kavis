@@ -79,8 +79,16 @@ export function resolveModeRole(
   let tools = allTools.filter((t) => modeDef.tools.includes(t.name) || t.name === 'patch_file');
 
   if (resolvedMode === 'code' && resolvedRole === 'kavis-code') {
-    const customWhitelist = new Set(['read_file', 'patch_file', 'shell_exec']);
-    tools = tools.filter((t) => customWhitelist.has(t.name));
+    const customWhitelist = new Set([
+      'read_file',
+      'patch_file',
+      'write_file',
+      'shell_exec',
+      'git_status',
+      'git_diff',
+      'delegate_task',
+    ]);
+    tools = allTools.filter((t) => customWhitelist.has(t.name));
   } else {
     tools = tools.filter((t) => t.name !== 'patch_file');
   }

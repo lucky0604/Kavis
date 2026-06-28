@@ -5,6 +5,8 @@ import { toolRegistry } from '../shared/tools/registry';
 import { CancellationToken } from './cancellation';
 import { createApprovalId, waitForToolApproval } from './tool-approval';
 import { SessionMemory } from '../shared/memory/index';
+import type { CodeModeDispatchContext } from '../code-mode/native/types';
+import { buildUnifiedDiff } from '../../shared/utils/unified-diff';
 
 const APPROVAL_REQUIRED_TOOLS = new Set(['write_file', 'patch_file']);
 
@@ -16,6 +18,7 @@ export async function* dispatchToolCalls(
   memCtx: MemoryContext,
   canceller: CancellationToken,
   signal?: AbortSignal,
+  codeModeCtx?: CodeModeDispatchContext,
 ): AsyncGenerator<StreamEvent> {
   for (const tc of toolCalls) {
     canceller.throwIfCancelled();
@@ -25,12 +28,26 @@ export async function* dispatchToolCalls(
         const approvalId = createApprovalId();
         const filePath = String(tc.arguments.path ?? '');
         let contentPreview = '';
+        let unifiedDiff = '';
         let bytes = 0;
+        let oldContent = '';
+        let newContent = '';
 
         if (tc.name === 'write_file') {
-          const content = String(tc.arguments.content ?? '');
-          contentPreview = content.slice(0, 800);
-          bytes = Buffer.byteLength(content, 'utf-8');
+          newContent = String(tc.arguments.content ?? '');
+          contentPreview = newContent.slice(0, 800);
+          bytes = Buffer.byteLength(newContent, 'utf-8');
+          try {
+            const fs = await import('fs');
+            const { resolveToolPath } = await import('../shared/tools/path-validator');
+            const resolvedPath = resolveToolPath(filePath, config.workspacePath);
+            if (fs.existsSync(resolvedPath)) {
+              oldContent = fs.readFileSync(resolvedPath, 'utf-8');
+            }
+          } catch {
+            /* new file */
+          }
+          unifiedDiff = buildUnifiedDiff(oldContent, newContent, filePath);
         } else if (tc.name === 'patch_file') {
           const patch = String(tc.arguments.patch ?? '');
           try {
@@ -38,22 +55,25 @@ export async function* dispatchToolCalls(
             const { resolveToolPath } = await import('../shared/tools/path-validator');
             const { SearchReplaceEngine } = await import('../code-mode/shared/patch/search-replace');
             const resolvedPath = resolveToolPath(filePath, config.workspacePath);
-            let fileContent = '';
             if (fs.existsSync(resolvedPath)) {
-              fileContent = fs.readFileSync(resolvedPath, 'utf-8');
+              oldContent = fs.readFileSync(resolvedPath, 'utf-8');
             }
             const engine = new SearchReplaceEngine();
-            const patchResult = engine.applyPatch(fileContent, patch);
+            const patchResult = engine.applyPatch(oldContent, patch);
             if (patchResult.success) {
-              contentPreview = patchResult.newContent.slice(0, 800);
-              bytes = Buffer.byteLength(patchResult.newContent, 'utf-8');
+              newContent = patchResult.newContent;
+              contentPreview = newContent.slice(0, 800);
+              bytes = Buffer.byteLength(newContent, 'utf-8');
+              unifiedDiff = buildUnifiedDiff(oldContent, newContent, filePath);
             } else {
               contentPreview = `[Patch Application Preview Failed: ${patchResult.error}]\n\nOriginal Patch:\n${patch.slice(0, 600)}`;
               bytes = Buffer.byteLength(patch, 'utf-8');
+              unifiedDiff = `--- a/${filePath}\n+++ b/${filePath}\n[Patch preview failed: ${patchResult.error}]\n${patch.slice(0, 1200)}`;
             }
           } catch (err) {
             contentPreview = `[Failed to generate preview: ${err instanceof Error ? err.message : String(err)}]\n\nOriginal Patch:\n${patch.slice(0, 600)}`;
             bytes = Buffer.byteLength(patch, 'utf-8');
+            unifiedDiff = contentPreview;
           }
         }
 
@@ -65,6 +85,7 @@ export async function* dispatchToolCalls(
             name: tc.name,
             path: filePath,
             contentPreview,
+            unifiedDiff,
             bytes,
           },
         };
@@ -98,7 +119,7 @@ export async function* dispatchToolCalls(
         workspacePath: config.workspacePath,
         sessionId: config.sessionId,
         projectPath: config.workspacePath,
-        memoryContext: memCtx,
+        memoryContext: codeModeCtx ? { ...memCtx, codeMode: codeModeCtx } : memCtx,
       });
       const output = result.success
         ? (typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2))

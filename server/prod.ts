@@ -18,6 +18,9 @@ import './shared/tools/git-ops';
 import './shared/tools/web/web-search';
 import './shared/tools/web/web-fetch';
 import './shared/tools/evolve';
+import { registerNativeCodeModeTools } from './code-mode/native/tools/register';
+
+registerNativeCodeModeTools();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

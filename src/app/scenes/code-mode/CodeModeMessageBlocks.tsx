@@ -51,6 +51,54 @@ export function ThinkingBlock({ text }: { text: string }) {
   );
 }
 
+/** Inline hook lifecycle event for assistant messages. */
+export function HookEventBlock({
+  hookType,
+  status,
+  round,
+  detail,
+}: {
+  hookType: string;
+  status: 'start' | 'continue' | 'rewrite' | 'abort';
+  round?: number;
+  detail?: string;
+}) {
+  const statusLabel =
+    status === 'start'
+      ? 'running'
+      : status === 'abort'
+        ? 'blocked'
+        : status === 'rewrite'
+          ? 'rewritten'
+          : 'done';
+
+  const icon =
+    status === 'abort' ? '🛑' : status === 'rewrite' ? '✏️' : status === 'start' ? '⚡' : '✓';
+
+  return (
+    <div
+      style={{
+        margin: '4px 0',
+        padding: '4px 10px',
+        background: 'var(--color-bg-surface)',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px dashed var(--color-border-subtle)',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--color-text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}
+    >
+      <span>{icon}</span>
+      <span style={{ fontFamily: 'monospace' }}>{hookType}</span>
+      {round !== undefined && <span>r{round}</span>}
+      <span style={{ opacity: 0.7 }}>{statusLabel}</span>
+      {detail && <span style={{ fontStyle: 'italic' }}>{detail}</span>}
+    </div>
+  );
+}
+
 /** Inline tool call card for assistant messages. */
 export function ToolEventBlock({ tool }: { tool: CodeModeToolCall }) {
   const isRunning = tool.status === 'running';

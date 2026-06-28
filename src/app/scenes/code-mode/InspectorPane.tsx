@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
+import { UnifiedDiffViewFromPreview } from '../../../components/UnifiedDiffView';
 import styles from './InspectorPane.module.css';
 
 export interface ToolCardData {
@@ -15,6 +16,9 @@ export interface ApprovalCardData {
   title: string;
   description: string;
   diff?: string;
+  unifiedDiff?: string;
+  contentPreview?: string;
+  path?: string;
   status: 'pending' | 'approved' | 'denied' | 'locked_timeout';
   onApprove?: () => void;
   onDeny?: () => void;
@@ -25,25 +29,6 @@ interface Props {
   tools?: ToolCardData[];
   approvals?: ApprovalCardData[];
   onClose?: () => void;
-}
-
-function DiffView({ diff }: { diff: string }) {
-  return (
-    <div className={styles.diffBlock}>
-      {diff.split('\n').map((line, i) => {
-        let cls = '';
-        if (line.startsWith('+') && !line.startsWith('+++')) cls = styles.diffAdd;
-        else if (line.startsWith('-') && !line.startsWith('---')) cls = styles.diffRemove;
-        else if (line.startsWith('@@') || line.startsWith('diff ') || line.startsWith('index '))
-          cls = styles.diffMeta;
-        return (
-          <div key={i} className={cls}>
-            {line}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 function ToolCard({ card }: { card: ToolCardData }) {
@@ -66,7 +51,12 @@ function ToolCard({ card }: { card: ToolCardData }) {
       {expanded && (
         <div className={styles.toolCardBody}>
           <div>{card.summary}</div>
-          {card.diff && <DiffView diff={card.diff} />}
+          {card.diff && (
+            <UnifiedDiffViewFromPreview
+              unifiedDiff={card.diff}
+              path={card.summary}
+            />
+          )}
         </div>
       )}
     </div>
@@ -91,7 +81,13 @@ function ApprovalCard({ card }: { card: ApprovalCardData }) {
       </div>
       <div className={styles.approvalBody}>
         <div style={{ fontSize: '12px', marginBottom: '8px' }}>{card.description}</div>
-        {card.diff && <DiffView diff={card.diff} />}
+        {(card.unifiedDiff || card.diff || card.contentPreview) && (
+          <UnifiedDiffViewFromPreview
+            unifiedDiff={card.unifiedDiff ?? card.diff}
+            contentPreview={card.contentPreview}
+            path={card.path}
+          />
+        )}
       </div>
       {isPending && (
         <div className={styles.approvalActions}>

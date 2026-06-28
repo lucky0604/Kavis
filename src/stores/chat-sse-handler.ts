@@ -192,13 +192,21 @@ export function processSSEEvent(event: StreamEvent, ctx: SSEContext): boolean {
       if (!event.data || typeof event.data !== 'object') return false;
       const raw = event.data as unknown as Record<string, unknown>;
       if (!raw.id || !raw.name || raw.toolCallId === undefined) return false;
-      const ar = event.data;
+      const ar = event.data as {
+        id: string;
+        toolCallId: string;
+        name: string;
+        path: string;
+        contentPreview: string;
+        unifiedDiff?: string;
+        bytes: number;
+      };
       const approvalMsg: Message = {
         id: generateId(), role: 'system', content: '', timestamp: Date.now(),
         eventMeta: {
           type: 'tool_approval', approvalId: ar.id, toolCallId: ar.toolCallId,
           toolName: ar.name, path: ar.path, contentPreview: ar.contentPreview,
-          bytes: ar.bytes, status: 'pending',
+          unifiedDiff: ar.unifiedDiff, bytes: ar.bytes, status: 'pending',
         },
       };
       ctx.set({ messages: [...ctx.getMessages(), approvalMsg] });

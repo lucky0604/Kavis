@@ -8,8 +8,9 @@ export type StreamEvent =
   | { type: 'memory_recall'; data: { count: number; memories: Array<{ id: string; content: string; category: string; source: string; staleness?: string }> } }
   | { type: 'skill_review'; data: { count: number; skills: Array<{ id: string; name: string; description: string; status: string }>; message?: string } }
   | { type: 'evolution_event'; data: { event: string; detail?: string } }
-  | { type: 'approval_required'; data: { id: string; toolCallId: string; name: string; path: string; contentPreview: string; bytes: number } }
+  | { type: 'approval_required'; data: { id: string; toolCallId: string; name: string; path: string; contentPreview: string; bytes: number; unifiedDiff?: string } }
   | { type: 'approval_resolved'; data: { id: string; approved: boolean } }
+  | { type: 'hook_event'; data: { hookType: string; status: 'start' | 'continue' | 'rewrite' | 'abort'; round?: number; detail?: string } }
   | { type: 'error'; data: { message: string } }
   | { type: 'done'; data: { reason: string; messages?: Message[] } };
 

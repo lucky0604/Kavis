@@ -7,6 +7,14 @@ export interface CodeModeToolCall {
   summary?: string;
 }
 
+export interface CodeModeHookEvent {
+  id: string;
+  hookType: string;
+  status: 'start' | 'continue' | 'rewrite' | 'abort';
+  round?: number;
+  detail?: string;
+}
+
 export interface CodeModeMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -14,6 +22,7 @@ export interface CodeModeMessage {
   cliId?: CliToolId;
   nativeSessionId?: string;
   toolCalls?: CodeModeToolCall[];
+  hookEvents?: CodeModeHookEvent[];
   thinking?: string;
   progress?: string[];
 }

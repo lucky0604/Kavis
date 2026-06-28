@@ -4,13 +4,14 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { CodeModeLayout } from './CodeModeLayout';
 import { ComposerConsole } from './ComposerConsole';
-import { InspectorPane, type ToolCardData } from './InspectorPane';
+import { InspectorPane, type ToolCardData, type ApprovalCardData } from './InspectorPane';
 import { PtyDrawer } from './PtyDrawer';
 import { OnboardingDashboard } from './OnboardingDashboard';
 import { ProjectSidebar } from './ProjectSidebar';
 import { CodeModeHeader } from './CodeModeHeader';
-import { ThinkingBlock, ToolEventBlock, ProgressBlock } from './CodeModeMessageBlocks';
+import { ThinkingBlock, ToolEventBlock, ProgressBlock, HookEventBlock } from './CodeModeMessageBlocks';
 import { applyRelayToolEvent } from './relay-tool-events';
+import { applyApprovalStreamEvent, attachApprovalHandlers } from './relay-approval-events';
 import { useProjectStore } from '../../../stores/project-store';
 import { useCodeModeSessionStore } from '../../../stores/code-mode-session-store';
 import { useCodeModeStore } from '../../../stores/code-mode-store';
@@ -29,7 +30,9 @@ export function CodeModeScene() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const initializedProjectIdRef = useRef<string | null>(null);
   const toolsCacheRef = useRef(new Map<string, ToolCardData[]>());
+  const approvalsCacheRef = useRef(new Map<string, ApprovalCardData[]>());
   const [tools, setTools] = useStateTools(activeSessionId, toolsCacheRef);
+  const [approvals, setApprovals] = useStateApprovals(activeSessionId, approvalsCacheRef);
 
   // Derive messages from the session cache keyed by activeSessionId.
   // This is the single source of truth — immune to async race conditions
@@ -60,15 +63,36 @@ export function CodeModeScene() {
     if (!activeSessionId) return;
     appendExchange(prompt, activeCli || undefined);
     toolsCacheRef.current.set(activeSessionId, []);
+    approvalsCacheRef.current.set(activeSessionId, []);
     setTools([]);
+    setApprovals([]);
   }, [appendExchange, activeSessionId, activeCli]);
 
   const handleStreamEvent = useCallback((sessionId: string, event: { type: string; data: unknown }) => {
-    const prev = toolsCacheRef.current.get(sessionId) ?? [];
-    const next = applyRelayToolEvent(prev, event);
-    toolsCacheRef.current.set(sessionId, next);
+    const prevTools = toolsCacheRef.current.get(sessionId) ?? [];
+    const nextTools = applyRelayToolEvent(prevTools, event);
+    toolsCacheRef.current.set(sessionId, nextTools);
+
+    const prevApprovals = approvalsCacheRef.current.get(sessionId) ?? [];
+    let nextApprovals = applyApprovalStreamEvent(prevApprovals, event);
+    if (event.type === 'approval_required') {
+      nextApprovals = nextApprovals.map((a) =>
+        attachApprovalHandlers(a, (id, status) => {
+          const updated = (approvalsCacheRef.current.get(sessionId) ?? []).map((c) =>
+            c.id === id ? { ...c, status } : c,
+          );
+          approvalsCacheRef.current.set(sessionId, updated);
+          if (sessionId === useCodeModeSessionStore.getState().activeSessionId) {
+            setApprovals(updated);
+          }
+        }),
+      );
+    }
+    approvalsCacheRef.current.set(sessionId, nextApprovals);
+
     if (sessionId === useCodeModeSessionStore.getState().activeSessionId) {
-      setTools(next);
+      setTools(nextTools);
+      setApprovals(nextApprovals);
     }
   }, []);
 
@@ -152,6 +176,21 @@ export function CodeModeScene() {
                         {/* Inline progress logs */}
                         {msg.progress && msg.progress.length > 0 && <ProgressBlock logs={msg.progress} />}
 
+                        {/* Inline hook lifecycle events */}
+                        {msg.hookEvents && msg.hookEvents.length > 0 && (
+                          <div style={{ margin: '4px 0' }}>
+                            {msg.hookEvents.map((he) => (
+                              <HookEventBlock
+                                key={he.id}
+                                hookType={he.hookType}
+                                status={he.status}
+                                round={he.round}
+                                detail={he.detail}
+                              />
+                            ))}
+                          </div>
+                        )}
+
                         {/* Inline tool call cards */}
                         {msg.toolCalls && msg.toolCalls.length > 0 && (
                           <div style={{ margin: '4px 0' }}>
@@ -207,7 +246,7 @@ export function CodeModeScene() {
           <ComposerConsole onStreamEvent={handleStreamEvent} onSend={handleUserSend} />
         </div>
       }
-      inspector={<InspectorPane tools={tools} />}
+      inspector={<InspectorPane tools={tools} approvals={approvals} />}
     />
   );
 }
@@ -237,4 +276,21 @@ function useStateTools(
   }, [activeSessionId, cacheRef]);
 
   return [tools, setTools];
+}
+
+function useStateApprovals(
+  activeSessionId: string | null,
+  cacheRef: MutableRefObject<Map<string, ApprovalCardData[]>>,
+): [ApprovalCardData[], Dispatch<SetStateAction<ApprovalCardData[]>>] {
+  const [approvals, setApprovals] = useState<ApprovalCardData[]>([]);
+
+  useEffect(() => {
+    if (!activeSessionId) {
+      setApprovals([]);
+      return;
+    }
+    setApprovals(cacheRef.current.get(activeSessionId) ?? []);
+  }, [activeSessionId, cacheRef]);
+
+  return [approvals, setApprovals];
 }
