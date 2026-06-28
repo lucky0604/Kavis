@@ -6,7 +6,7 @@ import { CancellationToken } from './cancellation';
 import { createApprovalId, waitForToolApproval } from './tool-approval';
 import { SessionMemory } from '../memory/index';
 
-const APPROVAL_REQUIRED_TOOLS = new Set(['write_file']);
+const APPROVAL_REQUIRED_TOOLS = new Set(['write_file', 'patch_file']);
 
 export async function* dispatchToolCalls(
   toolCalls: ToolCall[],
@@ -24,8 +24,38 @@ export async function* dispatchToolCalls(
       if (APPROVAL_REQUIRED_TOOLS.has(tc.name)) {
         const approvalId = createApprovalId();
         const filePath = String(tc.arguments.path ?? '');
-        const content = String(tc.arguments.content ?? '');
-        const bytes = Buffer.byteLength(content, 'utf-8');
+        let contentPreview = '';
+        let bytes = 0;
+
+        if (tc.name === 'write_file') {
+          const content = String(tc.arguments.content ?? '');
+          contentPreview = content.slice(0, 800);
+          bytes = Buffer.byteLength(content, 'utf-8');
+        } else if (tc.name === 'patch_file') {
+          const patch = String(tc.arguments.patch ?? '');
+          try {
+            const fs = await import('fs');
+            const { resolveToolPath } = await import('../tools/path-validator');
+            const { SearchReplaceEngine } = await import('../code-mode/shared/patch/search-replace');
+            const resolvedPath = resolveToolPath(filePath, config.workspacePath);
+            let fileContent = '';
+            if (fs.existsSync(resolvedPath)) {
+              fileContent = fs.readFileSync(resolvedPath, 'utf-8');
+            }
+            const engine = new SearchReplaceEngine();
+            const patchResult = engine.applyPatch(fileContent, patch);
+            if (patchResult.success) {
+              contentPreview = patchResult.newContent.slice(0, 800);
+              bytes = Buffer.byteLength(patchResult.newContent, 'utf-8');
+            } else {
+              contentPreview = `[Patch Application Preview Failed: ${patchResult.error}]\n\nOriginal Patch:\n${patch.slice(0, 600)}`;
+              bytes = Buffer.byteLength(patch, 'utf-8');
+            }
+          } catch (err) {
+            contentPreview = `[Failed to generate preview: ${err instanceof Error ? err.message : String(err)}]\n\nOriginal Patch:\n${patch.slice(0, 600)}`;
+            bytes = Buffer.byteLength(patch, 'utf-8');
+          }
+        }
 
         yield {
           type: 'approval_required',
@@ -34,7 +64,7 @@ export async function* dispatchToolCalls(
             toolCallId: tc.id,
             name: tc.name,
             path: filePath,
-            contentPreview: content.slice(0, 800),
+            contentPreview,
             bytes,
           },
         };

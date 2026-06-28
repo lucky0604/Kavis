@@ -68,18 +68,19 @@ describe('Agent Registry — Mode + Role Architecture', () => {
     registerAllAgents();
   });
 
-  it('should have 5 composite agents registered (work + 4 code roles)', () => {
+  it('should have 6 composite agents registered (work + 5 code roles)', () => {
     const agents = agentRegistry.list();
-    expect(agents.length).toBe(5);
+    expect(agents.length).toBe(6);
   });
 
-  it('should have work, code/agentic, code/plan, code/ask, code/debug', () => {
+  it('should have work, code/agentic, code/plan, code/ask, code/debug, code/custom', () => {
     const ids = agentRegistry.list().map((a) => a.id);
     expect(ids).toContain('work');
     expect(ids).toContain('code/agentic');
     expect(ids).toContain('code/plan');
     expect(ids).toContain('code/ask');
     expect(ids).toContain('code/debug');
+    expect(ids).toContain('code/custom');
   });
 
   it('all 5 agents should be active', () => {

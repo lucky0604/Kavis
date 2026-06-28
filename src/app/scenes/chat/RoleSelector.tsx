@@ -8,6 +8,7 @@ const ROLE_LABELS: Record<AgentRoleId, string> = {
   plan: 'Plan',
   ask: 'Ask',
   debug: 'Debug',
+  custom: 'Custom',
 };
 
 export function RoleSelector() {

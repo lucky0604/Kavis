@@ -11,6 +11,7 @@ import './tools/read-file';
 import './tools/list-dir-tree';
 import './tools/search-content';
 import './tools/write-file';
+import './tools/patch-file';
 import './tools/shell-exec';
 import './tools/git-ops';
 import './tools/web/web-search';

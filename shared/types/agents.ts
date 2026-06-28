@@ -19,7 +19,7 @@ export interface AgentDefinition {
 
 // ---- Operating Mode + Agent Role (two-dimensional architecture) ----
 export type OperatingModeId = 'work' | 'code';
-export type AgentRoleId = 'agentic' | 'plan' | 'ask' | 'debug';
+export type AgentRoleId = 'agentic' | 'plan' | 'ask' | 'debug' | 'custom';
 
 export interface ModeCapability {
   category: string;

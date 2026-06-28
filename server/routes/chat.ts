@@ -1,5 +1,6 @@
 import type { Message, StreamEvent, ToolDefinition, OperatingModeId, AgentRoleId } from '../../shared/types';
 import { executeDialogTurn } from '../engine/agent-loop';
+import { executeCustomAgentTurn } from '../code-mode/native/index';
 import { toolRegistry } from '../tools/registry';
 import { agentRegistry } from '../agents/registry';
 import { OPERATING_MODES, compositeId } from '../agents/config';
@@ -75,7 +76,14 @@ export function resolveModeRole(
     warnings.push(msg);
   }
 
-  const tools = allTools.filter((t) => modeDef.tools.includes(t.name));
+  let tools = allTools.filter((t) => modeDef.tools.includes(t.name) || t.name === 'patch_file');
+
+  if (resolvedMode === 'code' && resolvedRole === 'custom') {
+    const customWhitelist = new Set(['read_file', 'patch_file', 'shell_exec']);
+    tools = tools.filter((t) => customWhitelist.has(t.name));
+  } else {
+    tools = tools.filter((t) => t.name !== 'patch_file');
+  }
 
   return { resolvedMode, resolvedRole, compositeKey: key, tools, warnings };
 }
@@ -209,7 +217,11 @@ export async function handleChatStream(
 
         let doneEmitted = false;
 
-        for await (const event of executeDialogTurn(messages, toolDefs, config, signal)) {
+        const turnGenerator = mode === 'code' && role === 'custom'
+          ? executeCustomAgentTurn(messages, toolDefs, config, signal)
+          : executeDialogTurn(messages, toolDefs, config, signal);
+
+        for await (const event of turnGenerator) {
           if (signal.aborted) {
             push({ type: 'done', data: { reason: 'cancelled' } });
             doneEmitted = true;

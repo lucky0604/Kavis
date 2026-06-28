@@ -70,6 +70,11 @@ export const AGENT_ROLES: RoleDefinition[] = [
     name: 'Debug',
     description: 'Systematic debugging — investigate, diagnose, and fix issues',
   },
+  {
+    id: 'custom',
+    name: 'Custom',
+    description: '基于 Search-Replace 差异块协议的原生 Coding Agent MVP',
+  },
 ];
 
 /**

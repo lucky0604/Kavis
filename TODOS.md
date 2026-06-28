@@ -65,3 +65,15 @@
 > 已完整实现：`useLayoutStore`（sidebarWidth/inspectorWidth/ptyHeight）和 `useCodeModeStore`
 > 均已从 `useChatStore` 独立为单独的 Zustand store，localStorage 持久化。
 
+---
+
+## 7. ⏳ 前端 Unified Diff 预览 (Unified Diff Preview) [待开始]
+
+> **计划于:** Phase B 之后
+
+- **What**: 在审批卡片中展示高亮的 Git-style 差异对比，而非纯文本预览。
+- **Why**: 提升用户在审批 `patch_file` 时的体验，能够极其直观地看清每一行代码的增删改动，防止误操作。
+- **Pros**: 极佳的开发者体验 (DX)，建立更强的 AI 信任感。
+- **Cons**: 需要在前端引入 diff 解析和高亮渲染组件，增加前端包体积。
+
+
