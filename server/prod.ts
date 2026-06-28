@@ -7,16 +7,16 @@ import { handleApiRequest } from './router';
 import { registerAllAgents } from './handlers/agents-handler';
 
 // Register all tools (side-effect imports)
-import './tools/read-file';
-import './tools/list-dir-tree';
-import './tools/search-content';
-import './tools/write-file';
-import './tools/patch-file';
-import './tools/shell-exec';
-import './tools/git-ops';
-import './tools/web/web-search';
-import './tools/web/web-fetch';
-import './tools/evolve';
+import './shared/tools/read-file';
+import './shared/tools/list-dir-tree';
+import './shared/tools/search-content';
+import './shared/tools/write-file';
+import './shared/tools/patch-file';
+import './shared/tools/shell-exec';
+import './shared/tools/git-ops';
+import './shared/tools/web/web-search';
+import './shared/tools/web/web-fetch';
+import './shared/tools/evolve';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

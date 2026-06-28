@@ -1,7 +1,7 @@
 import type { Message, ToolDefinition } from '../../../shared/types';
-import type { StreamEvent } from '../../ai/adapter';
-import type { ExecutionConfig } from '../../engine/agent-loop';
-import { executeDialogTurn } from '../../engine/agent-loop';
+import type { StreamEvent } from '../../shared/ai/adapter';
+import type { ExecutionConfig } from '../../work-mode/agent-loop';
+import { executeDialogTurn } from '../../work-mode/agent-loop';
 
 /**
  * Execute a dialog turn for the Custom Coding Agent.

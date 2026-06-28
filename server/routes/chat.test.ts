@@ -1,9 +1,9 @@
 import type { AgentCapability } from '../../shared/types';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { resolveModeRole, resolveAgentTools } from './chat';
-import { agentRegistry } from '../agents/registry';
-import { toolRegistry } from '../tools/registry';
-import { OPERATING_MODES, AGENT_ROLES, compositeId } from '../agents/config';
+import { agentRegistry } from '../shared/agents/registry';
+import { toolRegistry } from '../shared/tools/registry';
+import { OPERATING_MODES, AGENT_ROLES, compositeId } from '../shared/agents/config';
 
 const MOCK_TOOL_NAMES = [
   'web_search', 'web_fetch',

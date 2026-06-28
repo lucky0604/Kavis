@@ -1,12 +1,12 @@
 import type { Message, StreamEvent, ToolDefinition, OperatingModeId, AgentRoleId } from '../../shared/types';
-import { executeDialogTurn } from '../engine/agent-loop';
+import { executeDialogTurn } from '../work-mode/agent-loop';
 import { executeCustomAgentTurn } from '../code-mode/native/index';
-import { toolRegistry } from '../tools/registry';
-import { agentRegistry } from '../agents/registry';
-import { OPERATING_MODES, compositeId } from '../agents/config';
-import { saveSession, loadSession, getSessionMetadata, shouldUpgradeName, updateSessionName } from '../persistence/session-store';
-import { generateTitle } from '../persistence/title-generator';
-import { logError } from '../utils/error-log';
+import { toolRegistry } from '../shared/tools/registry';
+import { agentRegistry } from '../shared/agents/registry';
+import { OPERATING_MODES, compositeId } from '../shared/agents/config';
+import { saveSession, loadSession, getSessionMetadata, shouldUpgradeName, updateSessionName } from '../shared/persistence/session-store';
+import { generateTitle } from '../shared/persistence/title-generator';
+import { logError } from '../shared/utils/error-log';
 import dotenv from 'dotenv';
 
 dotenv.config();

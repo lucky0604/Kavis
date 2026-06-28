@@ -6,14 +6,14 @@ import { resolveModeRole } from '../../routes/chat';
 import { SearchReplaceEngine } from '../shared/patch/search-replace';
 
 // Side-effect imports to register tools in the registry for testing
-import '../../tools/read-file';
-import '../../tools/patch-file';
-import '../../tools/shell-exec';
-import '../../tools/write-file';
+import '../../shared/tools/read-file';
+import '../../shared/tools/patch-file';
+import '../../shared/tools/shell-exec';
+import '../../shared/tools/write-file';
 
 // Mock the OpenAIAdapter or streamChat
 const mockStreamChat = vi.fn();
-vi.mock('../../ai/openai-adapter', () => {
+vi.mock('../../shared/ai/openai-adapter', () => {
   return {
     OpenAIAdapter: class {
       streamChat = mockStreamChat;

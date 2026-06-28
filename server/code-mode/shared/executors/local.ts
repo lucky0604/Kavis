@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import type { CodeExecutor } from './index';
-import { resolveToolPath } from '../../../tools/path-validator';
-import { resolveShellCwd, rejectOutsideWorkspaceShell } from '../../../tools/workspace-context';
+import { resolveToolPath } from '../../../shared/tools/path-validator';
+import { resolveShellCwd, rejectOutsideWorkspaceShell } from '../../../shared/tools/workspace-context';
 
 const DANGEROUS_PATTERNS = [
   /rm\s+-rf\s+\//,

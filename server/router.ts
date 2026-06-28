@@ -8,9 +8,9 @@ import { handleMemoryStatus } from './handlers/memory-handler';
 import { handleAgentsList } from './handlers/agents-handler';
 import { handleSessionRoutes } from './routes/sessions';
 import { handleProjects } from './routes/projects';
-import { handleCodeModeRoutes } from './code-mode/handoff-routes';
-import { handleStreamRoutes } from './code-mode/stream-routes';
-import { handleOnboardingRoutes } from './code-mode/onboarding-routes';
+import { handleCodeModeRoutes } from './code-mode/external/handoff-routes';
+import { handleStreamRoutes } from './code-mode/external/stream-routes';
+import { handleOnboardingRoutes } from './code-mode/external/onboarding-routes';
 
 export function handleApiRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);

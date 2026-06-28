@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Message } from '../../shared/types';
 import { handleChatStream } from '../routes/chat';
-import { readBody } from '../utils/read-body';
-import { logError } from '../utils/error-log';
+import { readBody } from '../shared/utils/read-body';
+import { logError } from '../shared/utils/error-log';
 
 export async function handleStreamRequest(req: IncomingMessage, res: ServerResponse) {
   const apiKey = (req.headers['x-api-key'] as string) || process.env.OPENAI_API_KEY;

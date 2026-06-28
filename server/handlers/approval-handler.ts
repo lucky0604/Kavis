@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { resolveToolApproval } from '../engine/tool-approval';
-import { readBody } from '../utils/read-body';
+import { resolveToolApproval } from '../work-mode/tool-approval';
+import { readBody } from '../shared/utils/read-body';
 
 export async function handleApprovalRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = await readBody(req);

@@ -9,9 +9,9 @@ import {
   getSessionMetadata,
   shouldUpgradeName,
   updateSessionName,
-} from '../persistence/session-store';
-import { generateTitle } from '../persistence/title-generator';
-import { readBodyRaw } from '../utils/read-body';
+} from '../shared/persistence/session-store';
+import { generateTitle } from '../shared/persistence/title-generator';
+import { readBodyRaw } from '../shared/utils/read-body';
 
 const UUID_V4_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

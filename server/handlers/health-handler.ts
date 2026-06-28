@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { probeProvider } from '../ai/health-check';
-import { readBody } from '../utils/read-body';
-import { logError } from '../utils/error-log';
+import { probeProvider } from '../shared/ai/health-check';
+import { readBody } from '../shared/utils/read-body';
+import { logError } from '../shared/utils/error-log';
 
 export async function handleProviderHealth(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const apiKey = (req.headers['x-api-key'] as string) || '';

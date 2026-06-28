@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import fs from 'fs';
 import path from 'path';
-import { agentRegistry } from '../agents/registry';
-import { OPERATING_MODES, AGENT_ROLES, promptFileKey, compositeId, compositeName } from '../agents/config';
+import { agentRegistry } from '../shared/agents/registry';
+import { OPERATING_MODES, AGENT_ROLES, promptFileKey, compositeId, compositeName } from '../shared/agents/config';
 
 export function registerAgentWithDir(
   promptsDir: string,

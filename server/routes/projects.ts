@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import * as projectRepo from '../persistence/project-repository';
+import * as projectRepo from '../shared/persistence/project-repository';
 
 export async function handleProjects(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const method = req.method;
