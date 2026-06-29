@@ -6,7 +6,7 @@ import { useChatStore } from '../../../stores/chat-store';
 import { useSceneStore } from '../../../stores/scene-store';
 import type { CliDetectionResult, CliToolId } from '../../../../shared/types';
 import { PickerSheet } from './PickerSheet';
-import { getPreviousCliFromMessages, useIsNarrow } from './composer-hooks';
+import { getPreviousCliFromMessages, useEffectiveCodeModel, useIsNarrow } from './composer-hooks';
 import styles from './ComposerConsole.module.css';
 
 interface Props {
@@ -15,7 +15,9 @@ interface Props {
 }
 
 export function ComposerConsole({ onStreamEvent, onSend }: Props) {
-  const { activeCli, activeModel, setActiveCli, setActiveModel } = useCodeModeStore();
+  const activeCli = useCodeModeStore((s) => s.activeCli);
+  const setActiveCli = useCodeModeStore((s) => s.setActiveCli);
+  const setPickedModel = useCodeModeStore((s) => s.setPickedModel);
   const {
     activeSessionId,
     ensureSessionBeforeSend,
@@ -32,51 +34,41 @@ export function ComposerConsole({ onStreamEvent, onSend }: Props) {
   const abortControllersRef = useRef(new Map<string, AbortController>());
   const isNarrow = useIsNarrow();
 
+  const { model: activeModel } = useEffectiveCodeModel(cliResults);
+
   const isCurrentSessionExecuting = activeSessionId
     ? isSessionExecuting(activeSessionId)
     : false;
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     fetch('/api/code-mode/detect')
       .then((r) => r.json())
       .then((data: { clis: CliDetectionResult[] }) => {
+        if (cancelled) return;
         setCliResults(data.clis);
-        const chat = useChatStore.getState();
-        // Only set defaults if no CLI is already selected (preserves user choice)
-        if (!activeCli) {
-          const available = data.clis.find((c) => c.available);
-          if (available) {
-            setActiveCli(available.id);
-            const userModel = available.id === 'kavis-code' && chat.codeModeUseOverride && chat.codeModeModel.trim()
-              ? chat.codeModeModel.trim()
-              : (available.defaultModel ?? available.models?.[0] ?? '');
-            setActiveModel(userModel);
-          }
-        } else {
-          // Restore model list for the already-selected CLI
-          const current = data.clis.find((c) => c.id === activeCli);
-          if (current && !activeModel) {
-            const userModel = current.id === 'kavis-code' && chat.codeModeUseOverride && chat.codeModeModel.trim()
-              ? chat.codeModeModel.trim()
-              : (current.defaultModel ?? current.models?.[0] ?? '');
-            setActiveModel(userModel);
-          }
+        // If the persisted/default activeCli is not actually available on this
+        // machine, fall back to the first available CLI. Without this check
+        // the picker shows an empty model list and the apiKey guard misfires.
+        const current = useCodeModeStore.getState().activeCli;
+        const currentIsAvailable = data.clis.some((c) => c.id === current && c.available);
+        if (!currentIsAvailable) {
+          const fallback = data.clis.find((c) => c.available);
+          if (fallback) setActiveCli(fallback.id);
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [setActiveCli, setActiveModel, activeCli, activeModel]);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setActiveCli]);
 
   const handleCliChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value as CliToolId;
-    setActiveCli(id);
-    const cli = cliResults.find((c) => c.id === id);
-    const chat = useChatStore.getState();
-    const userModel = id === 'kavis-code' && chat.codeModeUseOverride && chat.codeModeModel.trim()
-      ? chat.codeModeModel.trim()
-      : (cli?.defaultModel ?? cli?.models?.[0] ?? '');
-    setActiveModel(userModel);
+    setActiveCli(e.target.value as CliToolId);
   };
 
   const handleSend = async () => {
@@ -110,7 +102,6 @@ export function ComposerConsole({ onStreamEvent, onSend }: Props) {
     const sessionId = useCodeModeSessionStore.getState().activeSessionId;
     if (!sessionId) return;
 
-    // Capture before onSend appendExchange adds a new assistant with activeCli
     const previousCli = getPreviousCliFromMessages(sessionId);
 
     setInput('');
@@ -126,7 +117,12 @@ export function ComposerConsole({ onStreamEvent, onSend }: Props) {
       const useOverride = chat.codeModeUseOverride;
       const effectiveApiKey = useOverride ? (chat.codeModeApiKey.trim() || chat.apiKey) : chat.apiKey;
       const effectiveBaseUrl = useOverride ? (chat.codeModeBaseUrl.trim() || chat.baseUrl) : chat.baseUrl;
-      const effectiveModel = activeModel || (useOverride ? (chat.codeModeModel.trim() || chat.modelName) : chat.modelName);
+      // activeModel is already the single source of truth (resolveEffectiveModel
+      // handles picked / override-for-kavis-code / cli-default / cli-first).
+      // Only fall back to chat.modelName when activeModel is empty (no cliResult
+      // and no override) — never re-apply codeModeModel here, which would leak
+      // the kavis-code override into other CLIs (codex/claude/opencode).
+      const effectiveModel = activeModel || chat.modelName;
 
       if (activeCli === 'kavis-code' && !effectiveApiKey) {
         const errMsg = '尚未配置 API Key，请先到设置中填写。';
@@ -209,19 +205,17 @@ export function ComposerConsole({ onStreamEvent, onSend }: Props) {
 
   const handleCliSheetSelect = useCallback((id: string) => {
     setActiveCli(id as CliToolId);
-    const cli = cliResults.find((c) => c.id === id);
-    const chat = useChatStore.getState();
-    const userModel = id === 'kavis-code' && chat.codeModeUseOverride && chat.codeModeModel.trim()
-      ? chat.codeModeModel.trim()
-      : (cli?.defaultModel ?? cli?.models?.[0] ?? '');
-    setActiveModel(userModel);
     setSheetType(null);
-  }, [cliResults, setActiveCli, setActiveModel]);
+  }, [setActiveCli]);
 
   const handleModelSheetSelect = useCallback((id: string) => {
-    setActiveModel(id);
+    setPickedModel(activeCli, id);
     setSheetType(null);
-  }, [setActiveModel]);
+  }, [activeCli, setPickedModel]);
+
+  const handleModelInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPickedModel(activeCli, e.target.value);
+  };
 
   return (
     <div className={styles.composerContainer}>
@@ -254,7 +248,7 @@ export function ComposerConsole({ onStreamEvent, onSend }: Props) {
             className={styles.select}
             list={isNarrow ? undefined : `models-${activeCli}`}
             value={activeModel}
-            onChange={(e) => setActiveModel(e.target.value)}
+            onChange={handleModelInputChange}
             disabled={isCurrentSessionExecuting}
             placeholder="Select or type model..."
             onClick={isNarrow ? () => setSheetType('model') : undefined}

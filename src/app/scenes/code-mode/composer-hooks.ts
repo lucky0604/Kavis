@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { CliToolId } from '../../../../shared/types';
+import type { CliDetectionResult, CliToolId } from '../../../../shared/types';
 import { useCodeModeSessionStore } from '../../../stores/code-mode-session-store';
+import { useCodeModeStore } from '../../../stores/code-mode-store';
+import { useChatStore } from '../../../stores/chat-store';
+import { resolveEffectiveModel, type EffectiveModelResolution } from './effective-model';
+
+export type { EffectiveModelResolution } from './effective-model';
+export { resolveEffectiveModel } from './effective-model';
 
 export function getPreviousCliFromMessages(sessionId: string): CliToolId | undefined {
   const store = useCodeModeSessionStore.getState();
@@ -26,4 +32,19 @@ export function useIsNarrow(breakpoint = 768): boolean {
     return () => mq.removeEventListener('change', handler);
   }, [breakpoint]);
   return narrow;
+}
+
+export function useEffectiveCodeModel(cliResults: CliDetectionResult[]): EffectiveModelResolution {
+  const activeCli = useCodeModeStore((s) => s.activeCli);
+  const pickedModel = useCodeModeStore((s) => s.pickedModelByCli[s.activeCli]);
+  const codeModeUseOverride = useChatStore((s) => s.codeModeUseOverride);
+  const codeModeModel = useChatStore((s) => s.codeModeModel);
+  const cliResult = cliResults.find((c) => c.id === activeCli);
+  return resolveEffectiveModel(
+    activeCli,
+    cliResult,
+    pickedModel,
+    codeModeUseOverride,
+    codeModeModel,
+  );
 }
