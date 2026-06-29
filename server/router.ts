@@ -63,7 +63,14 @@ export function handleApiRequest(req: IncomingMessage, res: ServerResponse): Pro
   }
 
   if (req.method === 'GET' && pathname.startsWith('/skills/')) {
-    const name = decodeURIComponent(pathname.slice('/skills/'.length));
+    let name: string;
+    try {
+      name = decodeURIComponent(pathname.slice('/skills/'.length));
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Malformed skill name' }));
+      return Promise.resolve();
+    }
     if (name) {
       return handleSkillDetail(req, res, name);
     }
