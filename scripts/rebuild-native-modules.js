@@ -55,7 +55,7 @@ for (const moduleName of nativeModules) {
     execSync(
       `cd ${modulePath} && npx node-gyp rebuild ` +
       `--target=${electronVersion} ` +
-      `--arch=arm64 ` +
+      `--arch=${process.arch} ` +
       `--dist-url=https://electronjs.org/headers`,
       { 
         stdio: 'inherit',

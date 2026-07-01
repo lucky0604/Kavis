@@ -85,6 +85,14 @@ async function startServer(): Promise<number | undefined> {
           stdio: 'inherit',
           shell: true,
         });
+        viteDevProc.on('error', (err: Error) => {
+          console.error('[Kavis] Failed to start Vite:', err);
+        });
+        viteDevProc.on('exit', (code: number | null) => {
+          if (code && code !== 0) {
+            console.warn('[Kavis] Vite exited with code', code);
+          }
+        });
         await waitForServer(viteUrl, 30000);
         console.log('[Kavis] Vite dev server ready');
       }
